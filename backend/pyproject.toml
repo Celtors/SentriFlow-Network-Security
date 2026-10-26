@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentriflow"
+version = "0.1.0"
+description = "Local, secure-by-design network privacy guardian"
+requires-python = ">=3.12"
+# TODO: pin exact versions after the Week-1 spike
+dependencies = [
+  "mitmproxy",
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic",
+  "pydantic-settings",
+  "psutil",
+  "aiosqlite",
+  "geoip2",
+  "winotify; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "httpx", "ruff", "mypy", "pre-commit"]
+ml = ["scikit-learn"]
+
+[project.scripts]
+sentriflow = "sentriflow.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sentriflow = ["data/**/*", "web/**/*", "storage/*.sql", "storage/migrations/*.sql"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

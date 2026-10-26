@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Node
+node_modules/
+frontend/dist/
+# Built frontend copied into the backend package
+backend/src/sentriflow/web/
+# Local secrets / runtime data (never commit)
+.env
+*.db
+*.db-wal
+*.db-shm
+*.pem
+*.key
+*.log
+state.json
+ca/
+# Downloaded intel
+*.mmdb
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
