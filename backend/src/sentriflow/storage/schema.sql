@@ -1,0 +1,25 @@
+PRAGMA foreign_keys=ON;
+CREATE TABLE IF NOT EXISTS schema_version(version INTEGER PRIMARY KEY);
+INSERT OR IGNORE INTO schema_version VALUES (1);
+CREATE TABLE IF NOT EXISTS flows(
+    id TEXT PRIMARY KEY, ts TEXT NOT NULL, process_key TEXT, process_name TEXT NOT NULL,
+    host TEXT NOT NULL, verdict TEXT NOT NULL, data TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS flows_ts ON flows(ts);
+CREATE TABLE IF NOT EXISTS alerts(
+    id TEXT PRIMARY KEY, flow_id TEXT NOT NULL REFERENCES flows(id) ON DELETE CASCADE,
+    ts TEXT NOT NULL, data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS rules(
+    id TEXT PRIMARY KEY, process_match TEXT NOT NULL, host_match TEXT NOT NULL, data TEXT NOT NULL,
+    UNIQUE(process_match, host_match)
+);
+CREATE TABLE IF NOT EXISTS blocklist_domains(
+    domain TEXT PRIMARY KEY, source TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS custom_patterns(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS score_events(
+    flow_id TEXT PRIMARY KEY REFERENCES flows(id) ON DELETE CASCADE, delta INTEGER, reason TEXT
+);
+CREATE TABLE IF NOT EXISTS process_baseline(process_key TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);

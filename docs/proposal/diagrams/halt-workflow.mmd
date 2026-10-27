@@ -1,0 +1,24 @@
+sequenceDiagram
+  participant C as Client
+  participant P as GuardianAddon
+  participant R as Runtime
+  participant U as Dashboard
+  participant O as Origin
+  C->>P: Buffered request
+  P->>R: Redacted Flow and findings
+  R-->>U: halt.requested with deadline
+  Note over P,R: Await decision before HTTP forwarding
+  alt User answers
+    U->>R: action and scope
+  else Timeout or shutdown
+    R->>R: Default Block
+  end
+  R-->>U: halt.resolved
+  R-->>P: Verdict
+  alt Allow
+    P->>O: Forward request
+    O-->>P: Response chunks
+    P-->>U: Byte counters through speed.tick
+  else Block
+    P-->>C: Local 403
+  end

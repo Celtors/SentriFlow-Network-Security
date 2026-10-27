@@ -21,6 +21,11 @@ backend/src/sentriflow/web/
 *.log
 state.json
 ca/
+.runtime/
+*.lock.tmp
+session.lock
+*.tsbuildinfo
+private-data/
 # Downloaded intel
 *.mmdb
 # Editors / OS
