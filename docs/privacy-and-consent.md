@@ -10,9 +10,11 @@ labels and fully redacted match samples. Paths are redacted. Custom string/regex
 are retained so they can match future requests; they may themselves be sensitive. The runtime
 directory and CA key directory have restricted permissions. Proxy dump files are not enabled.
 
-The API token is random per process, kept in memory and printed in a local launch URL fragment.
-REST requires that token; REST and WebSocket verify Host and Origin. The map endpoint currently
-reports unavailable. No external map tiles, telemetry, model API or silent intel updates run.
+The API token is random per process, kept in backend memory and printed in a local launch URL
+fragment. The dashboard keeps it in the current tab's session storage and clears it on logout.
+REST requires that token; REST and WebSocket verify Host and Origin. The map uses bundled
+vectors and a manually installed local MMDB. No external map tiles, telemetry, model API or
+silent intel updates run.
 
 `DELETE /api/flows` clears metadata and related alerts while preserving rules/patterns.
 `sentriflow reset --confirm`, while stopped, clears the database. It does not revoke CA trust.

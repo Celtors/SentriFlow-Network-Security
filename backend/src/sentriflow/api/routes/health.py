@@ -17,3 +17,8 @@ async def health(rt: Annotated[Runtime, Depends(runtime)]) -> dict[str, Any]:
         "ca_generated": (rt.config.ca_dir / "mitmproxy-ca-cert.pem").exists(),
         "pending_halts": len(rt.halts.pending()),
     }
+
+
+@router.get("/snapshot")
+async def snapshot(rt: Annotated[Runtime, Depends(runtime)]) -> dict[str, Any]:
+    return await rt.snapshot()

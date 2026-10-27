@@ -1,7 +1,7 @@
 name: ci-frontend
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 jobs:
   build:
@@ -18,4 +18,5 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm run test
       - run: npm run build

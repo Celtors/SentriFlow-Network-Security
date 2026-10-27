@@ -14,9 +14,10 @@ class RuleRepository:
     async def save(self, rule: Rule) -> Rule:
         data = rule.model_dump(mode="json")
         await self.db.execute(
-            "INSERT INTO rules VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET "
+            "INSERT INTO rules (id,created_at,process_match,process_name,host_match,action,note) "
+            "VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET "
             "process_match=excluded.process_match, host_match=excluded.host_match, "
-            "action=excluded.action, note=excluded.note",
+            "process_name=excluded.process_name, action=excluded.action, note=excluded.note",
             tuple(data.values()),
         )
         return rule

@@ -1,0 +1,12 @@
+flowchart TB
+  Client[HTTP or HTTPS client] --> Proxy[Local proxy and inspection]
+  Proxy --> Decision[Rules and Halt]
+  Decision -->|Allow| Origin[Origin server]
+  Decision -->|Block| Reject[Local 403]
+  Decision <--> Runtime[Shared Runtime]
+  Runtime <--> SQLite[(Local SQLite)]
+  Origin -->|Stream counters| Runtime
+  Proxy -->|Observed IP| Geo[Offline country MMDB]
+  Geo --> Runtime
+  Runtime <--> API[Local REST and WebSocket]
+  API <--> UI[Dashboard and offline map]

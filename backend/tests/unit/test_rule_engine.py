@@ -16,3 +16,10 @@ def test_wildcard_and_case_boundaries():
     assert match_rule(Flow(host="a.EXAMPLE.test.", process_name="browser.exe"), [rule]) == rule
     for host in ["example.test", "notexample.test", "example.test.attacker.test"]:
         assert match_rule(Flow(host=host, process_name="browser.exe"), [rule]) is None
+
+
+def test_exact_executable_and_host():
+    rule = Rule(process_match="a" * 64, host_match="example.test", action=Verdict.BLOCK)
+    assert match_rule(Flow(host="example.test", process_key="a" * 64), [rule]) == rule
+    assert match_rule(Flow(host="sub.example.test", process_key="a" * 64), [rule]) is None
+    assert match_rule(Flow(host="example.test", process_name="a" * 64), [rule]) is None

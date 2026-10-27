@@ -23,3 +23,5 @@ async def decide(halt_id: str, body: DecisionInput, rt: RT) -> Decision:
         return await rt.halts.resolve(halt_id, Verdict(body.action), body.scope)
     except HaltNotFound as error:
         raise HTTPException(409, "Halt expired, resolved, or not found") from error
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error

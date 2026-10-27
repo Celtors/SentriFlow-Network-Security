@@ -4,6 +4,10 @@ Use your own Windows 11 x64 device with Python 3.12 and Node.js 22. From the rep
 run `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1`. Add `-BackendOnly` to defer
 the frontend install. Activate `.venv` or use its Python executable explicitly.
 
+After setup, build R4's dashboard with `.\scripts\build.ps1`. Open the printed launch URL
+to sign in automatically, or paste its fragment token into the dashboard login form.
+The current shared contracts and branch integration are recorded in [merge-r4.md](merge-r4.md).
+
 Windows is the primary MVP platform because routing uses the current user's Windows system
 proxy and certificate trust/recovery use Windows facilities. OS-specific code stays in
 `backend/src/sentriflow/os_adapters/windows/`; FastAPI, inspection and SQLite use the shared
@@ -46,8 +50,10 @@ curl.exe --proxy http://127.0.0.1:8080 --noproxy "" `
 ```
 
 Run `sentriflow seed-demo` before startup to register the dummy name. The name is a custom
-string; email and Luhn-valid test card detection are built in. Until the R4 Halt UI is wired,
-use REST or WebSocket from [api.md](api.md) to decide. A silent prompt blocks at 30 seconds.
+string; email and Luhn-valid test card detection are built in. Use the dashboard Halt modal
+or the REST/WebSocket API to decide. A silent prompt blocks at 30 seconds. New remembered
+decisions use the executable identity when available; delete the rule before demonstrating
+another Halt for the same destination.
 
 On Ctrl+C, the backend restores Windows routing before stopping the local proxy. An independent
 watchdog attempts recovery after forced termination. A power loss stops both processes; on

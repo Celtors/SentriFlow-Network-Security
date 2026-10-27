@@ -1,5 +1,6 @@
 {
   "name": "Alex Example",
-  "email": "alex@example.test",
+  "email": "student@example.test",
+  "phone": "+6281234567890",
   "card": "4111111111111111"
 }

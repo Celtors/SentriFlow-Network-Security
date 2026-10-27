@@ -39,6 +39,7 @@ class HaltManager:
         if flow.id in self._pending:
             raise ValueError("Flow is already held")
         deadline = utc_now() + timedelta(seconds=timeout)
+        flow.state, flow.deadline = "held", deadline
         pending = Pending(
             Halt(id=flow.id, flow=flow, deadline=deadline),
             asyncio.get_running_loop().create_future(),
@@ -76,12 +77,22 @@ class HaltManager:
         async with pending.lock:
             if pending.future.done() or utc_now() >= pending.halt.deadline:
                 raise HaltNotFound(halt_id)
+            if (
+                scope == "always"
+                and action == Verdict.ALLOW
+                and pending.halt.flow.tls_status in ("not_inspected", "pinned")
+            ):
+                raise ValueError("Uninspected requests can only be allowed once")
             rule_id = None
             if scope == "always":
                 flow = pending.halt.flow
                 # Unknown is not an identity. Never persist a rule for all unknown programs.
                 rule = Rule(
-                    process_match=flow.process_name if flow.pid is not None else None,
+                    process_match=flow.process_key
+                    or (flow.process_name if flow.pid is not None else None),
+                    process_name=flow.process_name
+                    if flow.pid is not None or flow.process_key
+                    else None,
                     host_match=flow.host,
                     action=action,
                     note="Saved from Halt prompt",

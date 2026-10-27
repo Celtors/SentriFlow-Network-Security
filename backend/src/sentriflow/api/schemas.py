@@ -13,6 +13,7 @@ class DecisionInput(Model):
 
 class RuleInput(Model):
     process_match: str | None = Field(default=None, min_length=1, max_length=512)
+    process_name: str | None = Field(default=None, max_length=512)
     host_match: str | None = Field(default=None, min_length=1, max_length=253)
     action: Literal["allow", "block"]
     note: str = Field(default="", max_length=500)

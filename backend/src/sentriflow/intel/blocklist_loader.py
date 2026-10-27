@@ -94,3 +94,23 @@ async def load_bundled(
         loaded[source] = await blocklist.replace_source(source, domains)
         await settings.save({key: digest})
     return loaded
+
+
+def parse_domains(text: str) -> tuple[set[str], int]:
+    """Explicit R4 CLI import, using the same domain validation as bundled R3 feeds."""
+    domains: set[str] = set()
+    skipped = 0
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or line.startswith(("!", "[")):
+            continue
+        if line.startswith("||"):
+            matched = set(parse_adblock([line]))
+        elif line.split()[0] in HOSTS_IPS:
+            matched = set(parse_hosts([line]))
+        else:
+            domain = clean_domain(line)
+            matched = {domain} if domain else set()
+        domains.update(matched)
+        skipped += not bool(matched)
+    return domains, skipped

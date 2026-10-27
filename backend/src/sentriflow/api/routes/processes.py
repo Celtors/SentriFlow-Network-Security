@@ -10,4 +10,4 @@ router = APIRouter()
 
 @router.get("/processes")
 async def processes(rt: Annotated[Runtime, Depends(runtime)]) -> list[dict[str, Any]]:
-    return await rt.flows.processes()
+    return rt.processes()

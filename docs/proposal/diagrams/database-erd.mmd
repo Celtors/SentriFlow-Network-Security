@@ -1,0 +1,39 @@
+erDiagram
+  direction LR
+  flows ||--o{ alerts : raises
+  flows ||--o| score_events : contributes
+  flows {
+    TEXT id PK
+    TEXT ts
+    TEXT process_key
+    TEXT process_name
+    TEXT host
+    TEXT verdict
+    TEXT data
+  }
+  alerts {
+    TEXT id PK
+    TEXT flow_id FK
+    TEXT ts
+    TEXT data
+  }
+  rules {
+    TEXT id PK
+    TEXT process_match
+    TEXT host_match
+    TEXT data
+  }
+  blocklist_domains {
+    TEXT domain PK
+    TEXT source
+    INTEGER enabled
+  }
+  settings {
+    TEXT key PK
+    TEXT value
+  }
+  score_events {
+    TEXT flow_id PK,FK
+    INTEGER delta
+    TEXT reason
+  }

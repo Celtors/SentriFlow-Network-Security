@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SentriFlow — Senklok full proposal working draft</title><style>
+@page{size:A4;margin:19mm 18mm 19mm}*{box-sizing:border-box}body{font:10.4pt/1.52 "Segoe UI",Arial,sans-serif;color:#202020;margin:0}h1,h2,h3{color:#111;line-height:1.22}h2{font-size:20pt;border-bottom:2px solid #ff8700;padding-bottom:8px;margin:0 0 19px}h3{font-size:12pt;margin:22px 0 9px;break-after:avoid}p{margin:0 0 12px}a{color:#985000;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:9pt;margin:16px 0;break-inside:auto}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}th{background:#fff0df;color:#362311}tr{break-inside:avoid}thead{display:table-header-group}ul,ol{padding-left:21px}li{margin-bottom:6px}blockquote{margin:15px 0;padding:10px 15px;border-left:3px solid #ff8700;background:#fff6ea}img{max-width:100%;max-height:132mm;object-fit:contain;display:block;margin:15px auto}p:has(img){break-inside:avoid}h3:has(+p>img){break-after:avoid}.chapter{break-before:auto;margin-top:24px}.cover+.chapter,.references{break-before:page}h2{break-after:avoid}p{orphans:3;widows:3}img[src*="system-architecture"]{max-height:160mm}img[src*="halt-workflow"]{max-height:170mm}img[src*="database-erd"]{max-height:160mm}.cover{height:255mm;position:relative;display:flex;flex-direction:column}.cover .stripe{height:10px;background:#ff8700;margin-bottom:24mm}.kicker{letter-spacing:2px;font-size:9pt;color:#655b50}.cover h1{font-size:58pt;letter-spacing:-3px;margin:17mm 0 4mm}.cover h2{font-size:20pt;line-height:1.4;border:0;font-weight:500;max-width:155mm}.tagline{font-size:11pt;color:#7c4a12;margin:5mm 0 18mm}.team{font-size:14pt;font-weight:600}.members{margin-top:7mm}.member{margin:0 0 4mm}.member small{color:#777}.cover-bottom{margin-top:auto;border-top:1px solid #ccc;padding-top:6mm;font-size:9pt;color:#666}.draft{display:inline-block;border:1px solid #ff8700;border-radius:3px;padding:4px 9px;color:#965000;margin-top:7mm}.caption{font-size:9pt;color:#666}code{font-family:Consolas,monospace;font-size:9pt}strong{font-weight:650} @media screen{body{max-width:180mm;margin:25px auto;padding:10px}.chapter{margin-top:50px}}
+</style></head><body><section class="cover"><div class="stripe"></div><div class="kicker">TECHTONIC UI 3.0 · Hackathon Competition</div><div class="kicker">STASH · Smart Technology and Security Hackathon</div><h1>SentriFlow</h1><h2>A Local Network Privacy Guardian for Real-Time Visibility and Before-Forward Control</h2><div class="tagline">Visibility. Understanding. A decision before forwarding.</div><div class="team">Team Senklok</div><div class="members"><div class="member"><strong>Marcel Luther Sitorus</strong><br><small>Team leader · Bandung Institute of Technology</small></div><div class="member"><strong>Audric Yusuf Maynard Simatupang</strong><br><small>Team member</small></div><div class="member"><strong>Mahatma Brahmana</strong><br><small>Team member</small></div><div class="member"><strong>Ishak Palentino Napitupulu</strong><br><small>Team member</small></div></div><div class="cover-bottom">October 2026<br><span class="draft">Full Proposal · Working Draft</span><p style="margin-top:10px">Prepared for review. User research, independent review and official submission requirements remain to be confirmed.</p></div></section><section class="chapter"><h2>Introduction</h2>
+<p>Laptop applications send network requests during everyday work, while their owners may struggle to identify which application contacted a destination or whether a transfer includes sensitive content. Encryption protects traffic in transit but also means an authorized local content-inspection tool needs explicit trust configuration and careful handling of plaintext. SentriFlow asks whether a local interface can help a device owner understand and stop a potentially sensitive HTTP request before it is forwarded.</p>
+<p>The intended users are students, remote workers, privacy-conscious laptop owners and small teams without a dedicated network analyst. These are target groups, not groups already validated by a survey. Prototype targets are at least 90% named-process attribution during a documented representative capture session, detection of all seeded dummy PII fixtures, and a local decision applied within one second. Targets must be reported separately from actual measurements.</p>
+</section>
+<section class="chapter"><h2>Problem Analysis</h2>
+<p>The design hypothesis is that connection metadata alone can leave users unsure about the contents and significance of a transfer, while detailed protocol inspection may require specialist knowledge. The product must connect the process, destination, a bounded content signal and an actionable decision in one workflow. Root causes to investigate include background application behavior, encrypted content, unfamiliar terminology, coarse persistent permissions and the effort of using expert tools.</p>
+<p>Application firewalls and protocol analyzers already address important parts of this problem. mitmproxy itself supplies programmable HTTP(S) interception [1]. SentriFlow composes existing techniques into an interface around redacted pattern signals and per-request decisions; it does not claim its interception mechanism is novel or that other tools categorically lack similar capabilities. User-validation questions and competitor comparisons need primary evidence and observed tasks before stronger claims are justified.</p>
+</section>
+<section class="chapter"><h2>Proposed Solution</h2>
+<p>The owner explicitly routes a client to a loopback proxy. SentriFlow identifies the client socket's process where possible, scans supported representations for email, Indonesian-phone heuristics, Luhn-valid card candidates and session-sensitive literals, and checks local tracker domains. Risky or incompletely inspected requests enter Halt. The dashboard displays process, host, size and redacted pattern labels. The user can Allow/Block once or remember a process/exact-host decision; silence defaults to Block.</p>
+<p>In the local demonstration a client submits a dummy email, phone and test card to a local origin. The real dashboard presents Halt before the payload arrives at the origin. Block produces a local 403; Allow reaches the origin. The history, alerts and disclosed score update. The privacy score is a ratio of risky resolved requests blocked in retained history, not a claim of total device safety.</p>
+</section>
+<section class="chapter"><h2>System Design</h2>
+<p>The implementation follows the supplied repository build plan: Python package under <code>backend/src/sentriflow</code>, React pages/hooks/stores, loopback proxy 8080 and dashboard/API 8787. Domain logic has no dependency on API/proxy/Windows adapters. A single asyncio process shares the decision coordinator between mitmproxy and FastAPI. Each hold has its own Future and authoritative deadline. WebSocket events communicate flows, holds, scores and a one-second speed ticker.</p>
+<p>Architecture, use-case, Halt, ERD and API diagrams are maintained in <code>diagrams/</code>. The <a href="../api.md">API contract</a> and <a href="../architecture.md">architecture</a> document actual names and deliberate deviations. SQLite stores redacted records, rules, alerts, source domains and public settings. Raw payloads/headers/URL queries are excluded. Sensitive literals are held in memory only. Startup recovers stale held records as blocked.</p>
+<h3>Figure 1. System architecture</h3>
+<p><img src="diagrams/exported/system-architecture.svg" alt="System architecture: capture, decisions, local control and offline geography"></p>
+<p>The control plane and proxy share a single Runtime. Country lookup uses a local database and the destination IP observed on the upstream socket; it does not resolve captured hostnames just to draw the map.</p>
+<h3>Figure 2. Owner use cases</h3>
+<p><img src="diagrams/exported/use-case.svg" alt="Device-owner use cases"></p>
+<p>The owner can inspect traffic details, manage exact-scope rules, review masked alerts, explore destination countries and explicitly consent to routing or CA trust changes.</p>
+<h3>Figure 3. Halt sequence</h3>
+<p><img src="diagrams/exported/halt-workflow.svg" alt="Before-forward Halt workflow"></p>
+<p>The authoritative deadline belongs to the backend. The interface countdown explains it; a missing or disconnected interface never turns an unanswered hold into Allow.</p>
+<h3>Figure 4. Database relationships</h3>
+<p><img src="diagrams/exported/database-erd.svg" alt="Schema v1 database entity relationships"></p>
+<p>JSON flow records include the observed destination IP and optional country code. The custom-pattern and process-baseline tables are reserved schema; current sensitive literals remain memory-only and the anomaly baseline is not implemented.</p>
+<h3>Figure 5. API and event boundary</h3>
+<p><img src="diagrams/exported/api-architecture.svg" alt="Authenticated local API and events"></p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/snapshot</code></td>
+<td>Redacted dashboard state and pending holds</td>
+</tr>
+<tr>
+<td><code>GET /api/flows</code>, <code>/processes</code>, <code>/alerts</code>, <code>/score</code></td>
+<td>Retained request details, session rates and activity indicators</td>
+</tr>
+<tr>
+<td><code>POST /api/halts/{id}/decision</code></td>
+<td>Allow/Block once or always</td>
+</tr>
+<tr>
+<td><code>GET/POST/DELETE /api/rules</code></td>
+<td>Manage persistent process/exact-host rules</td>
+</tr>
+<tr>
+<td><code>GET /api/geo/destinations</code></td>
+<td>Country aggregation from a local MMDB, with unplotted counts</td>
+</tr>
+<tr>
+<td><code>GET/PUT /api/settings</code>, <code>GET/POST/DELETE /api/patterns</code></td>
+<td>Inspection configuration and session literals</td>
+</tr>
+<tr>
+<td><code>/ws</code></td>
+<td>First-frame authentication, typed events and authoritative snapshots</td>
+</tr>
+</tbody>
+</table>
+<p>DELETE routes use resource IDs. Full request/response shapes and the explicit Windows consent routes are defined in the API document.</p>
+</section>
+<section class="chapter"><h2>Technical Implementation</h2>
+<p>mitmproxy provides authorized HTTP/HTTPS interception [1]. The asynchronous request hook waits for the verdict before forwarding the request. Response chunks are counted as they arrive, so download rates can update before response completion [2]; outbound request streaming remains disabled to preserve inspection-before-forward. psutil maps the loopback client endpoint to PID/executable identity, returning Unknown if permissions or process lifetime prevent reliable attribution.</p>
+<p>Inspection is bounded to 256 KB. Supported text/JSON/form/XML, gzip/deflate and simple multipart fields are inspected; unsupported formats, Brotli, file uploads or truncation prompt as incomplete. Regex-sensitive patterns are rejected pending a safe bounded implementation. The small included domain list is a demo seed, not a complete threat feed. The behavioral baseline remains future work.</p>
+<p>The R4 interface provides upload/download rates per application, searchable traffic and redacted request details, the queued Halt prompt, rule editing/deletion, severity-filtered alerts and a disclosed privacy-score breakdown. The responsive black-and-papaya-orange layout uses local assets only. An unsuccessful decision remains visible inside the Halt dialog, and uninspected requests cannot be remembered as Allow.</p>
+<p>Destination countries are rendered with Leaflet [4] and bundled Natural Earth shapes [5]. Country estimates are read from a local DB-IP Lite country MMDB [6]. The map groups retained requests, distinguishes blocked transfers and payload sizes, and accounts for private, unobserved or unmatched IPs. It never contacts an online tile server or an IP lookup service. These approximate IP-country assignments are not evidence of a recipient's nationality, identity or physical location. DB-IP attribution and data provenance are included with the map.</p>
+<p>The API requires per-run session token, local peer and accepted Host/Origin. WebSocket authentication occurs in the first frame rather than a logged URL [3]. CA keys are generated per private data directory; trust install is explicit. Upstream certificate verification remains enabled. Windows routing is opt-in with a durable original-settings journal, normal-exit restore and a hidden watchdog for dead-session recovery. Fake-registry tests validate the logic; real Windows recovery acceptance remains necessary.</p>
+<p>Local tests cover PII/redaction, Luhn, domain boundaries, rule scope, timeout/parallel holds, persistence/recovery, API/WS access and real HTTP/HTTPS non-delivery/release. A dedicated test confirms positive download counter/rate while the origin deliberately holds the remaining response. Actual Edge UI checks and screenshots are linked below.</p>
+<p><img src="../evidence/halt.png" alt="Actual local dummy-data Halt"></p>
+<p><img src="../evidence/dashboard.png" alt="Actual dashboard with captured streaming traffic"></p>
+<p><img src="../evidence/map.png" alt="Actual offline country map after a non-personal example.com test request"></p>
+<p>The map screenshot comes from an explicit non-personal test request to example.com through the proxy. Geography uses the observed server IP and a local database; the browser itself made no external tile or lookup requests. IP routing and dataset changes can alter the country shown in a future run.</p>
+<p>Measured evidence is in <a href="../evidence/local-demo-report.json">local-demo-report.json</a>: three local dummy requests, detected pattern labels, named attribution and click-to-response timing. This small controlled sample establishes feasibility; it does not demonstrate representative user behavior, universal detection or a production safety guarantee.</p>
+</section>
+<section class="chapter"><h2>Expected MVP, Impact and Plan</h2>
+<p>Core capture/inspection/Halt/rules/history/dashboard and the offline destination map are implemented. Remaining acceptance work is a clean Windows 11 installation, representative multi-app session, real normal/forced-crash routing restoration, detector false-positive review, compatibility/pinning/QUIC tests, long-run stability and notification delivery. Anomaly work follows core reliability. Kernel filtering, mobile support, installer and a trained PII model remain out of scope.</p>
+<table>
+<thead>
+<tr>
+<th>R4 deliverable</th>
+<th>Implementation and review evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard and traffic</td>
+<td>React/Zustand, real WebSocket events, per-application rates, filters and request detail</td>
+</tr>
+<tr>
+<td>Halt and rules</td>
+<td>Countdown, queued holds, Allow/Block once/always, rule editing/deletion, visible decision errors</td>
+</tr>
+<tr>
+<td>Alerts and score</td>
+<td>High-priority PII labels, redaction, severity filter and disclosed block-ratio calculation</td>
+</tr>
+<tr>
+<td>Offline country map</td>
+<td>Local MMDB plus bundled vector countries, explicit unknown-IP accounting and accessible country table</td>
+</tr>
+<tr>
+<td>Proposal package</td>
+<td>Consistent cover, five exported diagram sets, local HTML and A4 PDF working draft</td>
+</tr>
+</tbody>
+</table>
+<p>Impact hypotheses are improved user comprehension of application/destination/pattern signals and the ability to prevent a demonstrated dummy transfer. Measure task success, explanation accuracy, decision time, unanswered prompts and disruption with consented participants. Do not claim breach reductions or legal compliance from this prototype. Research data and quotes have not yet been collected.</p>
+<p>The remaining plan is acceptance/stabilization first, consented validation and source review second, then independent proposal review, rehearsal and backup video. A reviewable draft PDF and diagram exports are generated from local sources. Dates, rubric weights and the suggested 15-page cap from the tracker are planning inputs until confirmed by official organizer material. The draft has not been submitted; user-validation findings and official-rule review must precede a submission-ready version.</p>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation / boundary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Proxy bypass / QUIC</td>
+<td>Document capture scope; test selected browser routing and fallback before demo</td>
+</tr>
+<tr>
+<td>Trust/pinning failure</td>
+<td>Mark uninspected; no pinning bypass or blanket TLS verification disable</td>
+</tr>
+<tr>
+<td>False positives / prompt fatigue</td>
+<td>Bounded inspection, transparent labels, exact-scope rules, participant testing</td>
+</tr>
+<tr>
+<td>Unanswered prompt</td>
+<td>Short authoritative timeout and default Block</td>
+</tr>
+<tr>
+<td>CA or activity metadata exposure</td>
+<td>Restricted local directory, redaction, explicit trust removal</td>
+</tr>
+<tr>
+<td>Broken system proxy</td>
+<td>Durable snapshot, restore/watchdog, external-change checks and emergency command</td>
+</tr>
+<tr>
+<td>Demo/network failure</td>
+<td>Offline origin, automated local tests, genuine screenshots; backup recording pending</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section class="chapter references"><h2>References</h2>
+<p>[1] mitmproxy contributors, “Event Hooks,” mitmproxy Documentation. [Online]. Available: https://docs.mitmproxy.org/stable/api/events.html. [Accessed: Oct. 27, 2026].</p>
+<p>[2] mitmproxy contributors, “HTTP API,” mitmproxy Documentation. [Online]. Available: https://docs.mitmproxy.org/stable/api/mitmproxy/http.html. [Accessed: Oct. 27, 2026].</p>
+<p>[3] FastAPI, “WebSockets,” FastAPI Documentation. [Online]. Available: https://fastapi.tiangolo.com/advanced/websockets/. [Accessed: Oct. 27, 2026].</p>
+<p>[4] Leaflet contributors, “API Reference,” Leaflet 1.9.4. [Online]. Available: https://leafletjs.com/reference.html. [Accessed: Oct. 27, 2026].</p>
+<p>[5] Natural Earth, “Terms of Use.” [Online]. Available: https://www.naturalearthdata.com/about/terms-of-use/. [Accessed: Oct. 27, 2026].</p>
+<p>[6] DB-IP, “IP to Country Lite,” October 2026 edition, CC BY 4.0. [Online]. Available: https://db-ip.com/db/download/ip-to-country-lite. [Accessed: Oct. 27, 2026].</p>
+</section></body></html>

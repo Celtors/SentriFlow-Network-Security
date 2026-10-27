@@ -19,14 +19,22 @@ class Database:
             await self.connection.execute("PRAGMA journal_mode=WAL")
             await self.connection.execute("PRAGMA foreign_keys=ON")
             version = (await self.fetch("PRAGMA user_version"))[0]["user_version"]
-            if version > 1:
+            if version > 2:
                 raise ValueError("Database was created by a newer SentriFlow version")
-            if version == 0:
-                migration = Path(__file__).with_name("migrations") / "001_init.sql"
+            columns = await self.fetch("PRAGMA table_info(flows)")
+            if columns and "findings_json" not in {row["name"] for row in columns}:
+                raise ValueError(
+                    "Database uses a different prototype schema; "
+                    "preserve it and use a new --data-dir"
+                )
+            for number, filename in ((1, "001_init.sql"), (2, "002_dashboard.sql")):
+                if number <= version:
+                    continue
+                migration = Path(__file__).with_name("migrations") / filename
                 await self.connection.executescript(
                     "BEGIN IMMEDIATE;\n"
                     + migration.read_text()
-                    + "\nPRAGMA user_version=1;\nCOMMIT;"
+                    + f"\nPRAGMA user_version={number};\nCOMMIT;"
                 )
         except BaseException:
             await self.close()

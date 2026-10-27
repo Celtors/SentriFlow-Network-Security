@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -37,14 +38,17 @@ class ProcessInfo(Model):
     pid: int | None = None
     name: str = "Unknown"
     exe_path: str | None = None
+    key: str | None = None
 
 
 class Flow(Model):
     id: str = Field(default_factory=new_id)
     ts: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
     pid: int | None = None
     process_name: str = "Unknown"
     exe_path: str | None = None
+    process_key: str | None = None
     method: str = "GET"
     scheme: str = "http"
     host: str
@@ -57,6 +61,11 @@ class Flow(Model):
     verdict_source: str = "default"
     matched_rule_id: str | None = None
     country_code: str | None = None
+    destination_ip: str | None = None
+    state: Literal["started", "held", "completed", "error"] = "started"
+    reason: str = "No risk detected"
+    deadline: datetime | None = None
+    status_code: int | None = None
     findings: list[Finding] = Field(default_factory=list)
 
 
@@ -64,6 +73,7 @@ class Rule(Model):
     id: str = Field(default_factory=new_id)
     created_at: datetime = Field(default_factory=utc_now)
     process_match: str | None = Field(default=None, max_length=512)
+    process_name: str | None = Field(default=None, max_length=512)
     host_match: str | None = Field(default=None, max_length=253)
     action: Verdict
     note: str = Field(default="", max_length=500)

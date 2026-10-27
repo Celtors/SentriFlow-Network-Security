@@ -7,14 +7,13 @@ name = "sentriflow"
 version = "0.1.0"
 description = "Local, secure-by-design network privacy guardian"
 requires-python = ">=3.12"
-# TODO: pin exact versions after the Week-1 spike
 dependencies = [
-  "mitmproxy",
-  "fastapi",
-  "uvicorn[standard]",
-  "pydantic",
-  "pydantic-settings",
-  "psutil",
+  "mitmproxy>=12.3,<13",
+  "fastapi>=0.143,<1",
+  "uvicorn[standard]>=0.54,<1",
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.10,<3",
+  "psutil>=7.1,<8",
   "aiosqlite",
   "geoip2",
   "regex",
@@ -23,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-asyncio", "httpx", "ruff", "mypy", "pre-commit", "types-regex"]
+browser = ["playwright>=1.64,<2", "httpx>=0.28,<1"]
 ml = ["scikit-learn"]
 
 [project.scripts]
@@ -40,6 +40,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sentriflow", "tests"]
 
 [tool.mypy]
 python_version = "3.12"

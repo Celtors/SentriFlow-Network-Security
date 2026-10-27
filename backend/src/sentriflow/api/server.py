@@ -1,8 +1,7 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from sentriflow.api import ws
@@ -24,8 +23,10 @@ from sentriflow.api.security import valid_host, valid_origin, valid_token
 from sentriflow.application import Runtime
 
 
-def create_app(runtime: Runtime | None = None) -> FastAPI:
+def create_app(runtime: Runtime | None = None, token: str | None = None) -> FastAPI:
     rt = runtime or Runtime()
+    if token is not None:
+        rt.token = token
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -78,8 +79,13 @@ def create_app(runtime: Runtime | None = None) -> FastAPI:
     ):
         app.include_router(module.router, prefix="/api")
     app.include_router(ws.router)
-    web = Path(__file__).resolve().parents[1] / "web"
+    web = rt.config.frontend_dir
     if (web / "index.html").is_file():
+
+        @app.get("/")
+        async def dashboard() -> FileResponse:
+            return FileResponse(web / "index.html")
+
         app.mount("/", StaticFiles(directory=web, html=True), name="dashboard")
     else:
 

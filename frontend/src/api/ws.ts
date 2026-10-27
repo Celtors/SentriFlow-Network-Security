@@ -1,47 +1,84 @@
-import { getSessionToken } from './client'
-import type { HaltCommand, ServerEvent } from './types'
+import type { Event } from "./types";
+import { api } from "./client";
+import type { Snapshot } from "./types";
 
-// The caller fetches /halts/pending and history after every connection/reconnection.
-export function connectEvents(
-  onEvent: (event: ServerEvent) => void,
-  onConnected?: () => void,
-): { close: () => void; decide: (command: HaltCommand['data']) => void } {
-  let socket: WebSocket | undefined
-  let retry: ReturnType<typeof setTimeout> | undefined
-  let stopped = false
-  let delay = 500
-
-  const open = () => {
-    if (stopped) return
-    const token = getSessionToken()
-    if (!token) throw new Error('Missing SentriFlow session token')
-    const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    socket = new WebSocket(`${scheme}//${window.location.host}/ws`, ['sentriflow', token])
-    socket.onopen = () => {
-      delay = 500
-      onConnected?.()
-    }
-    socket.onmessage = (event: MessageEvent<string>) => {
-      onEvent(JSON.parse(event.data) as ServerEvent)
-    }
-    socket.onclose = (event) => {
-      // Invalid sessions need the new launch URL, not an endless reconnect loop.
-      if (stopped || event.code === 1008) return
-      retry = setTimeout(open, delay)
-      delay = Math.min(delay * 2, 10_000)
-    }
+export class LiveClient {
+  private token: string;
+  private onEvent: (event: Event) => void;
+  private onStatus: (status: string) => void;
+  private socket: WebSocket | null = null;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private stopped = false;
+  constructor(
+    token: string,
+    onEvent: (event: Event) => void,
+    onStatus: (status: string) => void,
+  ) {
+    this.token = token;
+    this.onEvent = onEvent;
+    this.onStatus = onStatus;
   }
-  open()
-  return {
-    close: () => {
-      stopped = true
-      clearTimeout(retry)
-      socket?.close()
-    },
-    decide: (data) => {
-      if (socket?.readyState !== WebSocket.OPEN) throw new Error('SentriFlow is disconnected')
-      const command: HaltCommand = { type: 'halt.decide', data }
-      socket.send(JSON.stringify(command))
-    },
+  connect() {
+    this.onStatus("Connecting");
+    const socket = new WebSocket(
+      `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
+      ["sentriflow", this.token],
+    );
+    this.socket = socket;
+    socket.onopen = async () => {
+      try {
+        const snapshot = await api<Snapshot>("/snapshot");
+        if (
+          !this.stopped &&
+          this.socket === socket &&
+          socket.readyState === WebSocket.OPEN
+        ) {
+          this.onEvent({
+            type: "snapshot",
+            ts: new Date().toISOString(),
+            data: snapshot,
+          });
+          this.onStatus("Live");
+        }
+      } catch {
+        if (!this.stopped) this.onStatus("Local service unavailable");
+      }
+    };
+    socket.onmessage = (event) => {
+      try {
+        const message: Event = JSON.parse(event.data);
+        if (message.type === "halt.requested") {
+          const halt = message.data as {
+            flow: Record<string, unknown>;
+            deadline: string;
+          };
+          message.data = {
+            ...halt.flow,
+            state: "held",
+            deadline: halt.deadline,
+          };
+        }
+        this.onEvent(message);
+        this.onStatus("Live");
+      } catch {
+        this.onStatus("Invalid live event");
+      }
+    };
+    socket.onclose = (event) => {
+      if (this.stopped) return;
+      this.onStatus(
+        event.code === 1008
+          ? "Token rejected; reconnect with current token"
+          : "Disconnected",
+      );
+      if (event.code !== 1008)
+        this.timer = setTimeout(() => this.connect(), 2000);
+    };
+    socket.onerror = () => this.onStatus("Local service unavailable");
+  }
+  close() {
+    this.stopped = true;
+    clearTimeout(this.timer);
+    this.socket?.close();
   }
 }

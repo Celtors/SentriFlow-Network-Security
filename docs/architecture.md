@@ -20,7 +20,10 @@ flowchart LR
 
 `core/` and `inspection/` never import API, proxy or OS adapters. They use shared Pydantic
 contracts. `application.py` is the composition root. Repositories use aiosqlite, WAL, foreign
-keys and the versioned initial migration. Unsupported future database versions are rejected.
+keys and versioned migrations. Version 2 adds dashboard lifecycle, executable identity and
+observed-IP fields while retaining schema-v1 history and rules. `runtime.py` and `launcher.py`
+are compatibility imports for the same composition root and lifecycle, not separate runtimes.
+Unsupported future database versions are rejected.
 
 For each request the addon resolves the client source port, constructs safe metadata, and
 passes raw URL/headers/body to inspection in memory. Inspection runs in a worker thread.
@@ -43,13 +46,17 @@ No saved rule is written for a once decision. Unknown processes get host-only sa
 
 Blocked requests receive a synthetic 403 before upstream receives their payload. Allowed
 requests complete after the response or transport error. The addon persists completion once,
-then publishes alerts, flow completion and a score update. The speed ticker publishes
-per-process bytes completed during each interval; this is completion-based throughput, not
-continuous streaming byte telemetry.
+then publishes alerts, flow completion and a score update. Outgoing body bytes count only
+after approval. Response headers install a streaming counter; downloaded payload and speed
+ticks advance before the response finishes. Response contents are not stored. The chart
+excludes network/protocol overhead and traffic outside the proxy.
 
 The event bus has bounded per-client queues. Slow clients disconnect with 1013 and must
 reload pending halts and history on reconnect. WebSocket disconnect never releases a hold.
-The current R4 frontend pages are scaffolds; the transport contract and clients are filled.
+R4's dashboard initializes from `/api/snapshot`, unwraps Halt envelopes for the modal, and
+resynchronizes after reconnects/state changes. Its authentication uses the backend's existing
+token/header and WebSocket subprotocol contract. Sensitive pattern definitions remain local
+and persistent, with values omitted from the dashboard snapshot.
 
 Only metadata and redacted findings are persisted. Paths become `/[redacted]`; neither raw
 headers nor bodies enter public flow models. Custom pattern definitions are intentionally

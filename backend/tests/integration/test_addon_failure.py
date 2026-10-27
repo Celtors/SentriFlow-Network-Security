@@ -11,8 +11,10 @@ from sentriflow.proxy.addon import SentriFlowAddon
 @pytest.mark.asyncio
 async def test_hook_exception_blocks_and_does_not_log_raw_request(caplog):
     runtime = SimpleNamespace(
+        config=SimpleNamespace(api_port=8787),
         resolver=SimpleNamespace(resolve=AsyncMock(return_value=ProcessInfo())),
         inspect=AsyncMock(side_effect=ValueError("private-request-value")),
+        locate=lambda *args: None,
     )
     flow = http.HTTPFlow(
         connection.Client(peername=("127.0.0.1", 50000), sockname=("127.0.0.1", 8080)),

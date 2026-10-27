@@ -41,7 +41,10 @@ def extract_parts(
     if body and not textual:
         raise InspectionLimit("Binary request body is not inspected")
     if body:
-        text = body.decode("utf-8", errors="replace")
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise InspectionLimit("Request text is not valid UTF-8") from error
         if "json" in content_type:
             try:
                 # JSON serialization decodes escaped letters and unicode before matching.

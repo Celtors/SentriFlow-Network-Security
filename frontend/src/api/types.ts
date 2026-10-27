@@ -1,104 +1,144 @@
-// Mirrors backend/src/sentriflow/core/models.py and api/schemas.py.
-export type Verdict = 'allow' | 'block' | 'halt'
-export type Action = 'allow' | 'block'
-export type Scope = 'once' | 'always'
-
+export type Verdict = "allow" | "block" | "halt";
 export interface Finding {
-  type: string
-  label: string
-  severity: string
-  masked_sample: string
-  location: string
+  label: string;
+  type: string;
+  location: string;
+  masked_sample: string;
 }
-
 export interface Flow {
-  id: string
-  ts: string
-  pid: number | null
-  process_name: string
-  exe_path: string | null
-  method: string
-  scheme: string
-  host: string
-  port: number
-  path_masked: string
-  bytes_up: number
-  bytes_down: number
-  tls_status: 'inspected' | 'pinned' | 'passthrough'
-  verdict: Verdict
-  verdict_source: string
-  matched_rule_id: string | null
-  country_code: string | null
-  findings: Finding[]
+  id: string;
+  ts: string;
+  updated_at: string;
+  pid: number | null;
+  process_name: string;
+  process_key: string | null;
+  method: string;
+  scheme: string;
+  host: string;
+  port: number;
+  bytes_up: number;
+  bytes_down: number;
+  tls_status: string;
+  verdict: Verdict;
+  verdict_source: string;
+  state: "started" | "held" | "completed" | "error";
+  reason: string;
+  findings: Finding[];
+  deadline: string | null;
+  status_code: number | null;
+  destination_ip?: string | null;
+  country_code?: string | null;
 }
-
-export interface Halt {
-  id: string
-  flow: Flow
-  deadline: string
-}
-
 export interface Rule {
-  id: string
-  created_at: string
-  process_match: string | null
-  host_match: string | null
-  action: Action
-  note: string
+  id: string;
+  process_match: string | null;
+  process_name: string | null;
+  host_match: string | null;
+  action: "allow" | "block";
+  note: string;
 }
-
+export interface Pattern {
+  id: string;
+  label: string;
+  enabled: boolean;
+  is_regex: boolean;
+}
 export interface Alert {
-  id: string
-  flow_id: string
-  ts: string
-  type: string
-  severity: string
-  pattern_label: string
-  masked_sample: string
+  id: string;
+  flow_id: string;
+  ts: string;
+  type: string;
+  severity: string;
+  pattern_label: string;
+  masked_sample: string;
+  host: string;
+  process_name: string;
 }
-
-export interface Score {
-  score: number
-  breakdown: Record<string, number>
-  weights: Record<string, number>
-  formula: string
+export interface Settings {
+  inspection_enabled: boolean;
+  halt_timeout_seconds: number;
+  large_upload_bytes: number;
+  tracker_policy: "ask" | "block" | "alert";
 }
-
-export interface SpeedTick {
-  interval_seconds: number
-  processes: {
-    process_name: string
-    bytes_up: number
-    bytes_down: number
-    upload_bps: number
-    download_bps: number
-  }[]
+export interface ProcessStats {
+  process_key: string | null;
+  process_name: string;
+  bytes_up: number;
+  bytes_down: number;
+  upload_bps: number;
+  download_bps: number;
 }
-
 export interface SystemStatus {
-  proxy_running?: boolean
-  system_proxy_enabled?: boolean
-  pending_halts?: Halt[]
-  message?: string
-  tls_status?: string
+  proxy_running: boolean;
+  proxy_address: string;
+  capture_scope: string;
+  system_proxy: {
+    available: boolean;
+    enabled?: boolean;
+    server?: string | null;
+    recovery_pending: boolean;
+  };
+  ca: {
+    generated: boolean;
+    public_certificate: string;
+    thumbprint: string | null;
+    trust_status: string;
+  };
+}
+export interface Snapshot {
+  flows: Flow[];
+  pending: Flow[];
+  rules: Rule[];
+  patterns: Pattern[];
+  alerts: Alert[];
+  settings: Settings;
+  score: {
+    score: number | null;
+    risky_resolved: number;
+    risky_blocked: number;
+    formula: string;
+    breakdown?: Record<string, number>;
+    weights?: Record<string, number>;
+  };
+  blocklist: { source: string; count: number }[];
+  system: SystemStatus;
+  processes: ProcessStats[];
+}
+export interface SpeedTick {
+  upload_bps: number;
+  download_bps: number;
+  processes: ProcessStats[];
+  elapsed: number;
+}
+export interface Event {
+  type: string;
+  ts: string;
+  data: unknown;
+}
+export interface Rate {
+  time: string;
+  upload: number;
+  download: number;
 }
 
-export interface EventData {
-  'flow.started': Flow
-  'flow.completed': Flow
-  'halt.requested': Halt
-  'halt.resolved': { id: string; action: Action; source: string; rule_id: string | null }
-  'alert.created': Alert
-  'score.updated': Score
-  'speed.tick': SpeedTick
-  'system.status': SystemStatus
+export interface GeoCountry {
+  country_code: string;
+  country_name: string;
+  requests: number;
+  blocked: number;
+  bytes_up: number;
+  bytes_down: number;
 }
-
-export type ServerEvent = {
-  [K in keyof EventData]: { type: K; ts: string; data: EventData[K] }
-}[keyof EventData]
-
-export interface HaltCommand {
-  type: 'halt.decide'
-  data: { id: string; action: Action; scope: Scope }
+export interface GeoDestinations {
+  available: boolean;
+  reason: string;
+  database: string;
+  build_epoch: number | null;
+  destinations: GeoCountry[];
+  total_requests: number;
+  unknown: {
+    no_observed_ip: number;
+    local_or_private_ip: number;
+    not_in_database: number;
+  };
 }

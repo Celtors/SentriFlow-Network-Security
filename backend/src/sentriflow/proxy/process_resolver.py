@@ -1,6 +1,8 @@
 """Best-effort, nonblocking attribution of a proxy client port to its process."""
 
 import asyncio
+import hashlib
+import os
 import time
 
 import psutil
@@ -62,7 +64,9 @@ class ProcessResolver:
                     exe = process.exe() or None
                 except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess, OSError):
                     exe = None
-                return ProcessInfo(pid=connection.pid, name=name, exe_path=exe)
+                identity = exe.casefold() if exe and os.name == "nt" else exe
+                key = hashlib.sha256(identity.encode()).hexdigest() if identity else None
+                return ProcessInfo(pid=connection.pid, name=name, exe_path=exe, key=key)
             except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess, OSError):
                 # Keep this an unknown identity so large uploads still trigger Halt.
                 return ProcessInfo(name=UNKNOWN_PROCESS)

@@ -22,8 +22,13 @@ def match_rule(flow: Flow, rules: Iterable[Rule]) -> Rule | None:
     for rule in rules:
         if rule.action == Verdict.HALT:
             continue
-        if rule.process_match and rule.process_match.casefold() != flow.process_name.casefold():
-            continue
+        if rule.process_match:
+            identity = rule.process_match
+            if len(identity) == 64 and all(c in "0123456789abcdef" for c in identity):
+                if flow.process_key != identity:
+                    continue
+            elif identity.casefold() != flow.process_name.casefold():
+                continue
         if rule.host_match and not host_matches(flow.host, rule.host_match):
             continue
         matches.append(rule)

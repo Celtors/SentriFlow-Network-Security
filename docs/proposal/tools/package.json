@@ -1,0 +1,10 @@
+{
+  "name": "sentriflow-proposal-tools",
+  "private": true,
+  "type": "module",
+  "description": "Local Mermaid and Markdown rendering for the R4 proposal draft",
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "mermaid": "^12.2.0"
+  }
+}

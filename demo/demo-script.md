@@ -1,33 +1,12 @@
-# Offline backend rehearsal and frontend handoff
+# Offline demonstration
 
-Audric's automated integration path runs without public network access:
+1. Run `scripts/build.ps1` then `scripts/run.ps1`. Open http://127.0.0.1:8787, enter the terminal token, and keep the dashboard direct.
+2. Start `python demo/test-server/server.py` in another terminal.
+3. Through explicit proxy 127.0.0.1:8080, POST the seeded dummy email/phone/card to http://127.0.0.1:9090/submit. Exact curl command: [Windows setup](../docs/windows-setup.md).
+4. Show the masked Halt prompt. Block and confirm local 403. Repeat, Allow once, and confirm origin 200. Repeat without answering to demonstrate default Block after 30 seconds.
+5. Remember a decision, review its exact process+host scope in Rules, edit/delete it. Show the alert list and disclosed score formula. Never claim that a pattern proves malicious behavior.
+6. GET http://127.0.0.1:9090/stream through the proxy. It sends chunks slowly; the speed chart should update before the response completes.
+7. Demonstrate the reserved tracker.sentriflow.test request and block it. It has no real reachable origin; Allow is not a successful tracker-site demo.
+8. Finish by restoring any explicitly enabled routing and removing any explicitly installed CA trust.
 
-```powershell
-.\.venv\Scripts\python.exe -I -m sentriflow.verification --output docs/evidence/kpis.json
-```
-
-It starts a temporary destination server, HTTPS certificates, proxy, API and WebSocket client;
-rehearses tracker Halt → PII Allow/Block → score update three times; tests all seeded PII
-encodings, persistent rules and timeout Block; and writes measured aggregate results.
-It changes neither the Windows proxy nor the system certificate store.
-
-For the eventual dashboard recording, install/setup the backend, run `sentriflow seed-demo`
-while stopped, start SentriFlow, and start `python demo/test-server/server.py` separately.
-Open the dashboard using the launch token printed by the backend (or the Vite URL with the
-same fragment). The R4 traffic/rules/Halt pages must be connected before this click path:
-
-1. Show the live traffic page and explain that inspection stays on this device.
-2. In another terminal run the explicit-proxy curl command from `docs/windows-setup.md`.
-3. Show the pending Halt with dummy name/email/card labels and redacted samples.
-4. Choose Block once. The curl request receives 403 and the receiver sees no payload.
-5. Send again; choose Allow once. The receiver returns its fixed acknowledgement.
-6. Send again; choose Always block. Repeat and show the saved rule blocking immediately.
-7. Show alerts, the transparent score breakdown and the saved rule. Delete the rule.
-8. Send again without answering; show timeout Block. Confirm masked history only.
-9. Record actual Windows attribution and decision timing using `docs/testing.md`.
-10. Stop monitoring, restore routing and remove CA trust before ending the recording.
-
-The synthetic tracker seed `tracker.demo.test` is reserved test data and is not a public
-blocklist. The automated verifier uses `localhost` as a synthetic tracker destination.
-Production blocklist ingestion remains R3's task. Do not present those fixtures as real
-threat intelligence or the automated run as a completed dashboard demonstration.
+The optional automated Edge script repeats actual decisions and saves screenshots/measurements. A recorded backup video and representative browsing KPI session still need to be prepared.

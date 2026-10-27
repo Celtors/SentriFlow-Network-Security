@@ -3,11 +3,14 @@
 import argparse
 import asyncio
 import contextlib
+import json
 import logging
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+import psutil
 import uvicorn
 from mitmproxy import options
 from mitmproxy.tools.dump import DumpMaster
@@ -27,6 +30,23 @@ DEFAULT_HOST = LOOPBACK
 DEFAULT_PORT = PROXY_PORT
 
 
+def acquire_session(data_dir: Path) -> Path:
+    """R4's per-directory session lock, checked against PID creation time."""
+    lock = data_dir / "session.lock"
+    if lock.exists():
+        previous = json.loads(lock.read_text(encoding="utf-8"))
+        try:
+            process = psutil.Process(previous["pid"])
+            if abs(process.create_time() - previous["created"]) < 0.01:
+                raise RuntimeError("Another SentriFlow instance is using this data directory")
+        except psutil.Error:
+            pass
+        lock.unlink()
+    with lock.open("x", encoding="utf-8") as stream:
+        json.dump({"pid": os.getpid(), "created": psutil.Process().create_time()}, stream)
+    return lock
+
+
 def create_master(runtime: Runtime) -> DumpMaster:
     config = runtime.config
     opts = options.Options(
@@ -43,6 +63,7 @@ async def run(config: Settings, *, system_proxy: bool = False, api_only: bool = 
     if system_proxy and (sys.platform != "win32" or api_only):
         raise ValueError("System routing requires Windows and the local proxy")
     restrict_private_directory(config.data_dir)
+    lock = acquire_session(config.data_dir)
     configure_logging(config.data_dir, config.log_level)
     runtime = Runtime(config)
     if sys.platform == "win32":
@@ -107,7 +128,10 @@ async def run(config: Settings, *, system_proxy: bool = False, api_only: bool = 
                 task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await asyncio.gather(*tasks, return_exceptions=True)
-            await runtime.close()
+            try:
+                await runtime.close()
+            finally:
+                lock.unlink(missing_ok=True)
 
 
 async def serve(

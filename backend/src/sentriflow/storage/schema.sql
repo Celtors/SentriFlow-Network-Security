@@ -4,13 +4,16 @@ CREATE TABLE IF NOT EXISTS flows (
     port INTEGER NOT NULL, path_masked TEXT NOT NULL, bytes_up INTEGER NOT NULL,
     bytes_down INTEGER NOT NULL, tls_status TEXT NOT NULL, verdict TEXT NOT NULL,
     verdict_source TEXT NOT NULL, matched_rule_id TEXT, country_code TEXT,
-    findings_json TEXT NOT NULL
+    findings_json TEXT NOT NULL, updated_at TEXT, process_key TEXT, destination_ip TEXT,
+    state TEXT NOT NULL DEFAULT 'completed',
+    reason TEXT NOT NULL DEFAULT 'Recorded before dashboard integration',
+    deadline TEXT, status_code INTEGER
 );
 CREATE INDEX IF NOT EXISTS flows_ts ON flows(ts);
 CREATE INDEX IF NOT EXISTS flows_process ON flows(process_name);
 CREATE TABLE IF NOT EXISTS rules (
     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, process_match TEXT, host_match TEXT,
-    action TEXT NOT NULL CHECK(action IN ('allow','block')), note TEXT NOT NULL
+    action TEXT NOT NULL CHECK(action IN ('allow','block')), note TEXT NOT NULL, process_name TEXT
 );
 CREATE TABLE IF NOT EXISTS alerts (
     id TEXT PRIMARY KEY, flow_id TEXT NOT NULL REFERENCES flows(id) ON DELETE CASCADE,

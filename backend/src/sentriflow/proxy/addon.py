@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from mitmproxy import http, tls
 
 from sentriflow.application import Runtime
-from sentriflow.core.models import Flow, ProcessInfo, Verdict
+from sentriflow.core.models import Finding, Flow, ProcessInfo, Verdict
 from sentriflow.inspection.masking import mask_path
 from sentriflow.proxy.process_resolver import ProcessResolver
 from sentriflow.proxy.tls_status import tls_status
@@ -29,12 +29,19 @@ class SentriFlowAddon:
 
     async def request(self, flow: http.HTTPFlow) -> None:
         try:
+            if flow.request.host in ("127.0.0.1", "localhost", "::1") and flow.request.port in (
+                self.runtime.config.api_port,
+                3000,
+            ):
+                flow.response = http.Response.make(403, b"Dashboard must bypass the proxy.\n")
+                return
             process = await self.runtime.resolver.resolve(flow.client_conn.peername[1])
             metadata = Flow(
                 id=flow.id,
                 pid=process.pid,
                 process_name=process.name,
                 exe_path=process.exe_path,
+                process_key=process.key,
                 method=flow.request.method,
                 scheme=flow.request.scheme,
                 host=flow.request.host,
@@ -44,6 +51,16 @@ class SentriFlowAddon:
                 tls_status=tls_status(flow.request.scheme),
             )
             flow.metadata["sentriflow"] = metadata
+            self.runtime.locate(metadata, metadata.host)
+            if flow.request.headers.get("upgrade", "").lower() == "websocket":
+                metadata.verdict, metadata.verdict_source = Verdict.BLOCK, "unsupported_protocol"
+                metadata.reason = "WebSocket frame inspection is not supported"
+                metadata.findings = [
+                    Finding(type="inspection_limit", label=metadata.reason, location="protocol")
+                ]
+                flow.response = http.Response.make(403, b"WebSocket forwarding is not supported.\n")
+                await self._complete(flow)
+                return
             decision = await self.runtime.inspect(
                 metadata,
                 flow.request.pretty_url,
@@ -69,7 +86,25 @@ class SentriFlowAddon:
     async def response(self, flow: http.HTTPFlow) -> None:
         await self._complete(flow)
 
+    def responseheaders(self, flow: http.HTTPFlow) -> None:
+        metadata = flow.metadata.get("sentriflow")
+        if not metadata or metadata.verdict != Verdict.ALLOW or not flow.response:
+            return
+        metadata.status_code = flow.response.status_code
+        if flow.server_conn.peername:
+            self.runtime.locate(metadata, flow.server_conn.peername[0])
+        flow.metadata["sentriflow_streamed"] = True
+
+        def count_chunk(chunk: bytes) -> bytes:
+            self.runtime.download_chunk(metadata, len(chunk))
+            return chunk
+
+        flow.response.stream = count_chunk
+
     async def error(self, flow: http.HTTPFlow) -> None:
+        if metadata := flow.metadata.get("sentriflow"):
+            metadata.state = "error"
+            metadata.reason = "Transport error; completion not guaranteed"
         await self._complete(flow)
 
     async def _complete(self, flow: http.HTTPFlow) -> None:
@@ -77,8 +112,16 @@ class SentriFlowAddon:
         if not metadata or flow.metadata.get("sentriflow_completed"):
             return
         flow.metadata["sentriflow_completed"] = True
-        if flow.response and metadata.verdict == Verdict.ALLOW:
+        if flow.response:
+            metadata.status_code = flow.response.status_code
+        if (
+            flow.response
+            and metadata.verdict == Verdict.ALLOW
+            and not flow.metadata.get("sentriflow_streamed")
+        ):
             metadata.bytes_down = len(flow.response.raw_content or b"")
+            if flow.id in self.runtime._counted:
+                self.runtime.record_bytes(metadata, down=metadata.bytes_down)
         await self.runtime.complete(metadata)
 
     async def tls_failed_client(self, data: tls.TlsData) -> None:

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     inspection_enabled: bool = True
     tracker_policy: Literal["ask", "block", "alert"] = "ask"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    frontend_dir: Path = Field(default_factory=lambda: Path(__file__).parent / "web")
+    geoip_database: Path = Field(
+        default_factory=lambda: Path(__file__).parent / "data" / "geoip" / "dbip-country-lite.mmdb"
+    )
 
     @model_validator(mode="after")
     def distinct_ports(self) -> "Settings":
@@ -33,3 +37,7 @@ class Settings(BaseSettings):
     @property
     def ca_dir(self) -> Path:
         return self.data_dir / "ca"
+
+
+# Both names use the same validated configuration for the R2 runtime and R4 tools.
+Config = Settings

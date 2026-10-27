@@ -1,0 +1,15 @@
+{
+  "project": "SentriFlow",
+  "subtitle": "A Local Network Privacy Guardian for Real-Time Visibility and Before-Forward Control",
+  "team": "Senklok",
+  "competition": "TECHTONIC UI 3.0 · Hackathon Competition",
+  "theme": "STASH · Smart Technology and Security Hackathon",
+  "date": "October 2026",
+  "document_status": "Full Proposal · Working Draft",
+  "members": [
+    { "name": "Marcel Luther Sitorus", "role": "Team leader", "institution": "Bandung Institute of Technology" },
+    { "name": "Audric Yusuf Maynard Simatupang", "role": "Team member" },
+    { "name": "Mahatma Brahmana", "role": "Team member" },
+    { "name": "Ishak Palentino Napitupulu", "role": "Team member" }
+  ]
+}

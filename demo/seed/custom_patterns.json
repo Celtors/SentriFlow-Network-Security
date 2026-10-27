@@ -5,5 +5,11 @@
     "pattern": "Alex Example",
     "is_regex": false,
     "enabled": true
+  },
+  {
+    "label": "project_canary",
+    "pattern": "dummy-project-canary",
+    "is_regex": false,
+    "enabled": true
   }
 ]

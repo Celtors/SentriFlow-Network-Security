@@ -30,10 +30,11 @@ The console prints a launch URL containing a per-run token in its fragment. Use 
 as `X-SentriFlow-Token` for REST. WebSockets use subprotocols `['sentriflow', token]` and an
 allowed local Origin. See the [API contract](docs/api.md) and [Windows guide](docs/windows-setup.md).
 
-The frontend currently contains the team's Vite scaffold. Shared types, authenticated clients,
-and the development proxy are ready for R4's traffic and Halt UI. `scripts/dev.ps1` runs both
-services; open `http://127.0.0.1:3000/#token=<token printed by backend>` during UI development.
-`scripts/build.ps1` packages a built frontend into the backend's static directory.
+R4's dashboard includes traffic, Halt decisions, rules, alerts, settings and an offline vector
+map. `scripts/dev.ps1` runs both services; open
+`http://127.0.0.1:3000/#token=<token printed by backend>` during UI development.
+`scripts/build.ps1` packages the dashboard for the single-process backend server. The printed
+launch URL signs in automatically; the login form also accepts the token from its fragment.
 
 For Linux backend development:
 
@@ -60,6 +61,8 @@ After a crash, recover Windows routing and remove CA trust when finished:
 .\.venv\Scripts\python.exe -I -m sentriflow remove-ca
 ```
 
-GeoIP, anomaly detection, notifications, production blocklist ingestion, the dashboard UI,
-and the full proposal remain team-owned work outside this backend implementation. The
-[proposal review](docs/proposal/audric-peer-review.md) assesses the supplied preliminary PDF.
+Country lookup uses a manually installed local MMDB and bundled map shapes. Missing data is
+reported explicitly; the app never downloads it or uses online tiles. R3's bundled blocklist
+loader and R4's explicit `--import-blocklist` command share domain validation. Anomaly detection,
+native Windows acceptance, a representative KPI session, and a backup recording remain pending.
+See [the R4 merge notes](docs/merge-r4.md) for the shared contracts and preserved branch evidence.

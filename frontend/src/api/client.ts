@@ -1,32 +1,46 @@
-let sessionToken = ''
-
-export function setSessionToken(token: string): void {
-  sessionToken = token
-}
-
-export function getSessionToken(): string {
-  if (!sessionToken && typeof window !== 'undefined') {
-    const fragment = new URLSearchParams(window.location.hash.slice(1))
-    const token = fragment.get('token')
-    if (token) {
-      sessionToken = token
-      fragment.delete('token')
-      const suffix = fragment.size ? `#${fragment.toString()}` : ''
-      window.history.replaceState(null, '', window.location.pathname + window.location.search + suffix)
-    }
+export const sessionToken = () => {
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  const token = fragment.get("token");
+  if (token) {
+    sessionStorage.setItem("sentriflow-token", token);
+    fragment.delete("token");
+    history.replaceState(
+      null,
+      "",
+      location.pathname +
+        location.search +
+        (fragment.size ? `#${fragment}` : ""),
+    );
   }
-  return sessionToken
+  return sessionStorage.getItem("sentriflow-token") || "";
+};
+
+export const getSessionToken = sessionToken;
+export function setSessionToken(token: string) {
+  if (token) sessionStorage.setItem("sentriflow-token", token);
+  else sessionStorage.removeItem("sentriflow-token");
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Use a local API path')
-  const token = getSessionToken()
-  if (!token) throw new Error('Open the dashboard URL printed by SentriFlow to start a session')
-  const headers = new Headers(options.headers)
-  headers.set('X-SentriFlow-Token', token)
-  if (options.body) headers.set('Content-Type', 'application/json')
-  const response = await fetch(`/api${path}`, { ...options, headers, credentials: 'omit' })
-  if (!response.ok) throw new Error(`SentriFlow API returned ${response.status}`)
-  if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
+export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!path.startsWith("/") || path.startsWith("//"))
+    throw new Error("Use a local API path");
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", `Bearer ${sessionToken()}`);
+  if (init?.body) headers.set("Content-Type", "application/json");
+  const response = await fetch(`/api${path}`, {
+    ...init,
+    headers,
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(
+      typeof body?.detail === "string"
+        ? body.detail
+        : `Request failed (${response.status})`,
+    );
+  }
+  return response.status === 204 ? (undefined as T) : response.json();
 }
+
+export const apiRequest = api;
