@@ -1,16 +1,20 @@
 """mitmproxy hook boundary; raw request data only lives in memory."""
 
 import asyncio
+import inspect
 import logging
+from collections.abc import Awaitable, Callable
 
 from mitmproxy import http, tls
 
 from sentriflow.application import Runtime
-from sentriflow.core.models import Flow, Verdict
+from sentriflow.core.models import Flow, ProcessInfo, Verdict
 from sentriflow.inspection.masking import mask_path
+from sentriflow.proxy.process_resolver import ProcessResolver
 from sentriflow.proxy.tls_status import tls_status
 
 logger = logging.getLogger(__name__)
+Resolver = Callable[[int | None], ProcessInfo | Awaitable[ProcessInfo]]
 
 
 class SentriFlowAddon:
@@ -104,4 +108,25 @@ class SentriFlowAddon:
                 "message": "Encrypted, not inspected: client TLS failed; "
                 "check CA trust or certificate pinning.",
             },
+        )
+
+
+class ConsoleFlowAddon:
+    """R1's standalone spike: log destination and identity without request contents."""
+
+    def __init__(self, resolver: Resolver | None = None) -> None:
+        self._resolve = resolver or ProcessResolver().resolve
+
+    async def request(self, flow: http.HTTPFlow) -> None:
+        peername = flow.client_conn.peername
+        source_port = peername[1] if peername and len(peername) > 1 else None
+        result = self._resolve(source_port)
+        process = await result if inspect.isawaitable(result) else result
+        logging.getLogger("sentriflow.proxy.spike").info(
+            "proxy_request method=%s host=%s process=%s pid=%s exe=%s",
+            flow.request.method,
+            flow.request.pretty_host,
+            process.name,
+            process.pid if process.pid is not None else "unknown",
+            process.exe_path or "unknown",
         )

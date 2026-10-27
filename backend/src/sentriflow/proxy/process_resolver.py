@@ -1,43 +1,73 @@
+"""Best-effort, nonblocking attribution of a proxy client port to its process."""
+
 import asyncio
 import time
 
 import psutil
 
+from sentriflow.constants import UNKNOWN_PROCESS
 from sentriflow.core.models import ProcessInfo
 
 
 class ProcessResolver:
-    def __init__(self, proxy_port: int = 8080, ttl: float = 1) -> None:
+    """Share one process contract between the application and the standalone spike."""
+
+    def __init__(
+        self, proxy_port: int = 8080, ttl: float = 1, *, cache_ttl: float | None = None
+    ) -> None:
+        if not 1 <= proxy_port <= 65535:
+            raise ValueError("proxy_port must be between 1 and 65535")
+        if cache_ttl is not None:
+            ttl = cache_ttl
+        if ttl < 0:
+            raise ValueError("cache_ttl must be non-negative")
         self.proxy_port, self.ttl = proxy_port, ttl
         self._cache: dict[int, tuple[float, ProcessInfo]] = {}
 
-    async def resolve(self, client_port: int) -> ProcessInfo:
+    async def resolve(self, client_port: int | None) -> ProcessInfo:
+        """Resolve off the event loop; invalid or inaccessible ports remain unknown."""
+        if client_port is None or not 0 < client_port <= 65535:
+            return ProcessInfo(name=UNKNOWN_PROCESS)
+        now = time.monotonic()
         cached = self._cache.get(client_port)
-        if cached and time.monotonic() - cached[0] < self.ttl:
+        if cached and cached[0] > now:
             return cached[1]
         result = await asyncio.to_thread(self._lookup, client_port)
+        self._expire(time.monotonic())
         if len(self._cache) >= 1024:
-            self._cache.clear()
-        self._cache[client_port] = (time.monotonic(), result)
+            self._cache.pop(next(iter(self._cache)))
+        self._cache[client_port] = (time.monotonic() + self.ttl, result)
         return result
 
     def _lookup(self, client_port: int) -> ProcessInfo:
         try:
-            for connection in psutil.net_connections(kind="tcp"):
-                if (
-                    connection.laddr
-                    and connection.laddr.port == client_port
-                    and connection.raddr
-                    and connection.raddr.port == self.proxy_port
-                    and connection.pid
-                ):
-                    process = psutil.Process(connection.pid)
-                    name = process.name()
-                    try:
-                        exe = process.exe()
-                    except (psutil.AccessDenied, psutil.NoSuchProcess):
-                        exe = None
-                    return ProcessInfo(pid=process.pid, name=name, exe_path=exe)
-        except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-            pass
-        return ProcessInfo()
+            connections = psutil.net_connections(kind="tcp")
+        except (psutil.AccessDenied, OSError):
+            return ProcessInfo(name=UNKNOWN_PROCESS)
+        for connection in connections:
+            if not (
+                connection.laddr
+                and connection.laddr.port == client_port
+                and connection.raddr
+                and connection.raddr.port == self.proxy_port
+                and connection.pid is not None
+            ):
+                continue
+            try:
+                process = psutil.Process(connection.pid)
+                name = process.name()
+                if not name:
+                    return ProcessInfo(name=UNKNOWN_PROCESS)
+                try:
+                    exe = process.exe() or None
+                except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess, OSError):
+                    exe = None
+                return ProcessInfo(pid=connection.pid, name=name, exe_path=exe)
+            except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess, OSError):
+                # Keep this an unknown identity so large uploads still trigger Halt.
+                return ProcessInfo(name=UNKNOWN_PROCESS)
+        return ProcessInfo(name=UNKNOWN_PROCESS)
+
+    def _expire(self, now: float) -> None:
+        for port in [p for p, (expires, _) in self._cache.items() if expires <= now]:
+            del self._cache[port]
