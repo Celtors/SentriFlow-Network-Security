@@ -21,9 +21,14 @@ def valid_origin(headers: Mapping[str, str], config: Settings, *, required: bool
     }
 
 
+def tokens_equal(supplied: str, token: str) -> bool:
+    # compare_digest(str, str) raises TypeError on non-ASCII input (a 500 instead of a 401).
+    return secrets.compare_digest(supplied.encode(), token.encode())
+
+
 def valid_token(headers: Mapping[str, str], token: str) -> bool:
     supplied = headers.get("x-sentriflow-token", "")
     auth = headers.get("authorization", "")
     if auth.startswith("Bearer "):
         supplied = auth[7:]
-    return secrets.compare_digest(supplied, token)
+    return tokens_equal(supplied, token)
