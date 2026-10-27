@@ -56,7 +56,7 @@ results and outstanding evidence are in [evidence/kpis.json](evidence/kpis.json)
 [audric-worklog.md](audric-worklog.md).
 
 
-## S41 acceptance results (Windows 11, measured 2026-10-27, commit 8fdd2be)
+## S41 acceptance results (Windows 11, measured 2026-10-27, code: merge b9548be)
 
 Source: [evidence/kpis-windows.json](evidence/kpis-windows.json), produced on Windows 11
 (`Windows-11-10.0.26200-SP0`) by `python -I -m sentriflow.verification` (loopback only; no system proxy or
