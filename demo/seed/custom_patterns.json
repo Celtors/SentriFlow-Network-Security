@@ -1,0 +1,9 @@
+[
+  {
+    "id": "demo-name",
+    "label": "Demo name",
+    "pattern": "Alex Example",
+    "is_regex": false,
+    "enabled": true
+  }
+]

@@ -1,0 +1,49 @@
+{
+  "measured_at": "2026-10-27T01:04:52.909110+00:00",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "scope": "Automated loopback HTTP/HTTPS backend rehearsal; not a Windows browser session",
+  "rehearsals": [
+    {
+      "run": 1,
+      "tracker_halted": true,
+      "pii_blocked": true,
+      "score_before_block": 91,
+      "score_after_block": 96
+    },
+    {
+      "run": 2,
+      "tracker_halted": true,
+      "pii_blocked": true,
+      "score_before_block": 87,
+      "score_after_block": 92
+    },
+    {
+      "run": 3,
+      "tracker_halted": true,
+      "pii_blocked": true,
+      "score_before_block": 83,
+      "score_after_block": 88
+    }
+  ],
+  "captured_flows": 28,
+  "named_flows": 28,
+  "attribution_percent": 100.0,
+  "seeded_pii_expected": 18,
+  "seeded_pii_detected": 18,
+  "seeded_pii_detection_percent": 100.0,
+  "decision_max_ms": 23.17,
+  "decision_median_ms": 7.34,
+  "non_halted_median_ms": 36.43,
+  "direct_median_ms": 1.05,
+  "https_inspected": true,
+  "blocked_payloads_never_reached_upstream": true,
+  "saved_rule_reused": true,
+  "timeout_blocked": true,
+  "persisted_samples_redacted": true,
+  "pending_manual_evidence": [
+    "Windows 11 browser attribution over 10 minutes",
+    "Current-user CA consent, HTTPS browser trust and removal",
+    "Windows real registry restoration after normal exit and forced termination",
+    "Frontend click-through rehearsal, screenshots and backup recording"
+  ]
+}

@@ -17,11 +17,12 @@ dependencies = [
   "psutil",
   "aiosqlite",
   "geoip2",
+  "regex",
   "winotify; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "httpx", "ruff", "mypy", "pre-commit"]
+dev = ["pytest", "pytest-asyncio", "httpx", "ruff", "mypy", "pre-commit", "types-regex"]
 ml = ["scikit-learn"]
 
 [project.scripts]
