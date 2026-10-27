@@ -1,0 +1,15 @@
+[Adblock Plus 2.0]
+! Title: synthetic EasyPrivacy-style sample (example domains only)
+||pixel.example.com^
+||beacon.example.net^$third-party
+||cdn.example.org^$3p
+||Stats.EXAMPLE.io^
+@@||allowed.example.com^
+||path.example.com/track.js
+||wild*.example.com^
+example.com##.banner
+||example.com^$script,domain=other.test
+||localhost^
+||com^
+||path.example.com/pixel^
+||q.example.com^$script

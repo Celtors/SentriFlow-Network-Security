@@ -1,11 +1,10 @@
 import asyncio
-import secrets
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
 from sentriflow.api.schemas import HaltCommand
-from sentriflow.api.security import valid_host, valid_origin
+from sentriflow.api.security import tokens_equal, valid_host, valid_origin
 from sentriflow.application import Runtime
 from sentriflow.core.halt_manager import HaltNotFound
 from sentriflow.core.models import Verdict, utc_now
@@ -22,7 +21,7 @@ async def websocket(socket: WebSocket) -> None:
         or not valid_origin(socket.headers, rt.config, required=True)
         or len(protocols) != 2
         or protocols[0] != "sentriflow"
-        or not secrets.compare_digest(protocols[1], rt.token)
+        or not tokens_equal(protocols[1], rt.token)
     ):
         await socket.close(code=1008)
         return

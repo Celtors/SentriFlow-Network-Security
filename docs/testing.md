@@ -54,3 +54,28 @@ Native Windows acceptance must add genuine evidence for these cases:
 No measured Windows values or video should be inferred from automated backend tests. Current
 results and outstanding evidence are in [evidence/kpis.json](evidence/kpis.json) and
 [audric-worklog.md](audric-worklog.md).
+
+
+## S41 acceptance results (Windows 11, measured 2026-10-27, commit 8fdd2be)
+
+Source: [evidence/kpis-windows.json](evidence/kpis-windows.json), produced on Windows 11
+(`Windows-11-10.0.26200-SP0`) by `python -I -m sentriflow.verification` (loopback only; no system proxy or
+certificate store was changed). The older `kpis.json` was measured on Linux.
+"Automated" = loopback backend rehearsal. It is **not** a browser session, so rows that need one stay open.
+
+| # | Build Plan target | Result | Evidence | Status |
+| - | --- | --- | --- | --- |
+| 1 | >= 90% of flows attributed to a named process | 28/28 flows named, but all from the test process itself | automated only | **OPEN**: needs a 10-minute Edge/Chrome session |
+| 2 | 100% of seeded PII detected | 18/18 (100.0%): name, email, card over JSON, form, multipart, plain and gzip, HTTP and HTTPS | automated | **PASS** (automated) |
+| 3 | Decision applied within 1 s | max 8.62 ms, median 6.52 ms over 16 decisions (WebSocket send to proxy response) | automated | **PASS** (automated); UI click timing still open |
+| 4 | Default Block when nobody answers | timeout request blocked and never reached upstream (halt timeout set to 0.1 s) | automated + unit tests | **PASS** (automated); manual run with the default 30 s optional |
+| 5 | Proxy restored after stop or crash | restoration verified only against a fake registry | unit tests | **OPEN**: needs the real registry, normal exit and forced kill |
+| 6 | Dashboard not controllable from a web page | every `/api` route and `/ws` reject bad token, Origin and Host; no CORS headers | `test_route_security_matrix.py`, `test_ws_security.py`, `test_api_security.py` | **PASS** (automated) |
+
+Extra automated checks: no seeded PII in the SQLite file, its WAL, any table or SentriFlow logs
+(`test_privacy_at_rest.py`); blocked payloads never reached the upstream server; a saved always-rule
+applied to the next connection; score recovered by 5 points after each Block in all 3 rehearsals.
+
+Rows 1 and 5 (and the optional manual checks) need a person at the PC: they change the Windows
+system proxy and trust a temporary CA for the current user. The procedure is in the "Native Windows
+acceptance" table above. Row 1 and row 5 results must be added here once measured.

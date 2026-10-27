@@ -1,0 +1,18 @@
+# Synthetic StevenBlack-style hosts sample (example domains only)
+127.0.0.1 localhost
+127.0.0.1 localhost.localdomain
+255.255.255.255 broadcasthost
+::1 localhost
+0.0.0.0 0.0.0.0
+
+# [Ads]
+0.0.0.0 ads.example.com
+0.0.0.0 Tracker.EXAMPLE.net   # inline comment, mixed case
+0.0.0.0 a.example.org b.example.org
+127.0.0.1 metrics.example.com.
+0.0.0.0 not_a_domain
+0.0.0.0 1.2.3.4
+0.0.0.0 bad..example.com
+192.168.1.10 printer.example.com
+::1 v6.example.com
+10.0.0.1 router.example.com
