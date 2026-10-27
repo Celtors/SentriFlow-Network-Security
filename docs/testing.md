@@ -65,20 +65,18 @@ certificate store was changed). The older `kpis.json` was measured on Linux.
 
 | # | Build Plan target | Result | Evidence | Status |
 | - | --- | --- | --- | --- |
-| 1 | >= 90% of flows attributed to a named process | 28/28 flows named, but all from the test process itself | automated only | **OPEN**: needs a 10-minute Edge/Chrome session |
+| 1 | >= 90% of flows attributed to a named process | Real Edge session: **3871/3922 = 98.70%** named (msedge.exe 3733; 5 other named processes, 138 flows; 51 flows `Unknown`, none `protected process`). Session lasted 8 min 3 s, not 10 | [evidence/s41-row1-windows.json](evidence/s41-row1-windows.json), code `origin/merge` b9548be | **PASS** (8 min 3 s session; repeat for a full 10 min if the rubric needs it) |
 | 2 | 100% of seeded PII detected | 18/18 (100.0%): name, email, card over JSON, form, multipart, plain and gzip, HTTP and HTTPS | automated | **PASS** (automated) |
 | 3 | Decision applied within 1 s | max 8.62 ms, median 6.52 ms over 16 decisions (WebSocket send to proxy response) | automated | **PASS** (automated); UI click timing still open |
 | 4 | Default Block when nobody answers | timeout request blocked and never reached upstream (halt timeout set to 0.1 s) | automated + unit tests | **PASS** (automated); manual run with the default 30 s optional |
-| 5 | Proxy restored after stop or crash | restoration verified only against a fake registry | unit tests | **OPEN**: needs the real registry, normal exit and forced kill |
+| 5 | Proxy restored after stop or crash | Real Windows registry, run twice with the same result. Normal exit (Ctrl+Break): proxy was on (`127.0.0.1:18080`), process exited in 0.3 s, all 5 values back to baseline immediately, `state.json` removed. Forced kill: watchdog restored all 5 values in 0.75 s, `state.json` removed at 0.75 s, watchdog process exited | [evidence/s41-row5-windows.json](evidence/s41-row5-windows.json), code `origin/merge` b9548be | **PASS** (registry only; logoff, reboot and power loss not tested) |
 | 6 | Dashboard not controllable from a web page | every `/api` route and `/ws` reject bad token, Origin and Host; no CORS headers | `test_route_security_matrix.py`, `test_ws_security.py`, `test_api_security.py` | **PASS** (automated) |
 
 Extra automated checks: no seeded PII in the SQLite file, its WAL, any table or SentriFlow logs
 (`test_privacy_at_rest.py`); blocked payloads never reached the upstream server; a saved always-rule
 applied to the next connection; score recovered by 5 points after each Block in all 3 rehearsals.
 
-Rows 1 and 5 (and the optional manual checks) need a person at the PC: they change the Windows
-system proxy and trust a temporary CA for the current user. The procedure is in the "Native Windows
-acceptance" table above. Row 1 and row 5 results must be added here once measured.
+Measured on the integrated `merge` code with a real Edge session. Observations from that run that are not part of the targets but matter for the demo: 618 of 3922 flows were blocked (465 halt timeouts, 140 TLS failures, 13 unsupported protocol), so about 12% of ordinary browsing reached the Halt path and, with nobody answering, timed out into Block; `tls_status` also took the value `not_inspected` and `verdict_source` the value `unsupported_protocol`, neither in the Build Plan lists. The temporary CA was removed manually after `sentriflow remove-ca` timed out in the run.
 
 
 ## Four-role integration verification
