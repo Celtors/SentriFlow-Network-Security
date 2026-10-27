@@ -9,14 +9,32 @@ export function useLiveTraffic(token: string) {
   useEffect(() => {
     if (!token) return;
     let stopped = false;
+    let revision = 0;
     let refresh: ReturnType<typeof setTimeout> | undefined;
     const accept = (snapshot: Snapshot) => {
       useTrafficStore.getState().setSnapshot(snapshot);
       useHaltStore.getState().replace(snapshot.pending);
     };
+    const scheduleRefresh = () => {
+      if (stopped || refresh) return;
+      refresh = setTimeout(async () => {
+        refresh = undefined;
+        const requestedAt = revision;
+        try {
+          const data = await api<Snapshot>("/snapshot");
+          if (stopped) return;
+          if (requestedAt === revision) accept(data);
+          else scheduleRefresh();
+        } catch (error) {
+          if (!stopped)
+            useTrafficStore.getState().setError((error as Error).message);
+        }
+      }, 200);
+    };
     const client = new LiveClient(
       token,
       (event) => {
+        revision += 1;
         if (event.type === "snapshot") accept(event.data as Snapshot);
         else if (event.type === "speed.tick")
           useTrafficStore.getState().speed(event.data as SpeedTick, event.ts);
@@ -47,17 +65,7 @@ export function useLiveTraffic(token: string) {
           }
           if (event.type === "halt.resolved")
             useHaltStore.getState().remove((event.data as { id: string }).id);
-          if (!refresh)
-            refresh = setTimeout(async () => {
-              refresh = undefined;
-              try {
-                const data = await api<Snapshot>("/snapshot");
-                if (!stopped) accept(data);
-              } catch (error) {
-                if (!stopped)
-                  useTrafficStore.getState().setError((error as Error).message);
-              }
-            }, 200);
+          scheduleRefresh();
         }
       },
       (status) => useTrafficStore.getState().setStatus(status),

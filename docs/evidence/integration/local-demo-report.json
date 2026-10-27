@@ -1,0 +1,42 @@
+{
+  "measured_at": "2026-10-27T13:26:52.546483+00:00",
+  "sample_requests": 4,
+  "seeded_detection": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "attributed_requests": 4,
+  "decision_roundtrip_ms": [
+    514.96,
+    102.3,
+    294.91,
+    1115.41
+  ],
+  "decision_click_to_response_ms": [
+    98.8,
+    131.2,
+    111.9,
+    102.4
+  ],
+  "timing_method": "roundtrip includes Playwright action waiting; click timing starts at captured DOM click and ends after proxy response plus a browser evaluation roundtrip",
+  "download_observed_before_completion": true,
+  "ui_checks": [
+    "halt_once",
+    "remember",
+    "edit_rule",
+    "delete_rule",
+    "save_settings",
+    "mobile_layout",
+    "redacted_request_detail",
+    "high_priority_alerts",
+    "offline_vector_map",
+    "pending_halt_after_reload",
+    "cross_client_rule_sync"
+  ],
+  "public_map_check": false,
+  "map_countries": [],
+  "external_browser_requests": [],
+  "limitations": "Small local dummy sample. No real CA/proxy/firewall changes made."
+}

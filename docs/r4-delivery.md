@@ -1,5 +1,7 @@
 # R4 delivery
 
+Current integrated status: [implementation-status.md](implementation-status.md); run/check guide: [integration.md](integration.md). Earlier role-specific evidence below is retained as history.
+
 Merged runtime/contracts: see [merge-r4.md](merge-r4.md). The branch-specific history and evidence below are preserved from R4's original checkout.
 
 27 October 2026, Asia/Jakarta. This work extends the current `backend/src/sentriflow` scaffold and preserves its ports, contracts and black/papaya-orange theme. Existing unrelated working-tree changes and the deletion of the root README are preserved.

@@ -20,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--browser-path", type=Path, help="Optional local Chromium/Chrome executable")
+    parser.add_argument(
+        "--browser-path", type=Path, help="Optional local Chromium/Chrome executable"
+    )
     parser.add_argument("--evidence-dir", type=Path, default=ROOT / "docs" / "evidence")
     parser.add_argument(
         "--public-map-check",
@@ -63,7 +65,9 @@ async def main():
                 if line.startswith("Session token: "):
                     token = line.split(": ", 1)[1].strip()
                 elif line.startswith("Dashboard: "):
-                    token = parse_qs(urlsplit(line.split(": ",1)[1].strip()).fragment).get("token", [None])[0]
+                    token = parse_qs(
+                        urlsplit(line.split(": ", 1)[1].strip()).fragment
+                    ).get("token", [None])[0]
                 if guardian.poll() is not None:
                     raise RuntimeError(
                         "Guardian startup failed: " + guardian.stderr.read()
@@ -84,8 +88,12 @@ async def main():
                     await asyncio.sleep(0.1)
             async with async_playwright() as playwright:
                 browser = await playwright.chromium.launch(
-                    **({"executable_path": str(args.browser_path)} if args.browser_path
-                       else {"channel": "msedge"}), headless=True
+                    **(
+                        {"executable_path": str(args.browser_path)}
+                        if args.browser_path
+                        else {"channel": "msedge"}
+                    ),
+                    headless=True,
                 )
                 page = await browser.new_page(viewport={"width": 1440, "height": 1100})
                 page.set_default_timeout(10000)
@@ -107,7 +115,29 @@ async def main():
                     "button", name="Open dashboard", exact=True
                 ).click()
                 await page.get_by_text("Guardian connected", exact=True).wait_for()
-                latencies, detection = [], []
+                latencies, click_latencies, detection = [], [], []
+
+                async def decide_in_browser(dialog, action, request):
+                    await page.evaluate("""() => {
+                        window.sentriflowDecisionClick = null;
+                        document.addEventListener('click', () => {
+                            window.sentriflowDecisionClick = performance.now();
+                        }, {capture: true, once: true});
+                    }""")
+                    started = time.perf_counter()
+                    await dialog.get_by_role("button", name=action, exact=True).click()
+                    response = await request
+                    latencies.append(round((time.perf_counter() - started) * 1000, 2))
+                    click_latencies.append(
+                        round(
+                            await page.evaluate(
+                                "performance.now() - window.sentriflowDecisionClick"
+                            ),
+                            2,
+                        )
+                    )
+                    return response
+
                 async with httpx.AsyncClient(
                     proxy="http://127.0.0.1:8080", trust_env=False, timeout=40
                 ) as proxied:
@@ -139,14 +169,7 @@ async def main():
                         if index == 2:
                             await dialog.get_by_role("checkbox").check()
                         action = "Allow transfer" if index == 1 else "Block transfer"
-                        started = time.perf_counter()
-                        await dialog.get_by_role(
-                            "button", name=action, exact=True
-                        ).click()
-                        response = await request
-                        latencies.append(
-                            round((time.perf_counter() - started) * 1000, 2)
-                        )
+                        response = await decide_in_browser(dialog, action, request)
                         assert response.status_code == (200 if index == 1 else 403)
                         await dialog.wait_for(state="hidden")
                     await page.get_by_role("button", name="Rules", exact=True).click()
@@ -163,6 +186,57 @@ async def main():
                             await asyncio.sleep(0.05)
                     await page.get_by_role("button", name="Delete", exact=True).click()
                     await page.get_by_text("No saved rules.", exact=False).wait_for()
+                    # A second API client must update the already-open dashboard.
+                    remote_rule = await direct.post(
+                        "http://127.0.0.1:8787/api/rules",
+                        headers=headers,
+                        json={
+                            "host_match": "sync.example.test",
+                            "action": "block",
+                            "process_name": "External client",
+                        },
+                    )
+                    assert remote_rule.status_code == 201
+                    await page.get_by_text("sync.example.test", exact=True).wait_for()
+                    assert (
+                        await direct.delete(
+                            "http://127.0.0.1:8787/api/rules/"
+                            + remote_rule.json()["id"],
+                            headers=headers,
+                        )
+                    ).status_code == 204
+                    await page.get_by_text("No saved rules.", exact=False).wait_for()
+
+                    # Reloading must resynchronize an existing hold without releasing it.
+                    reconnect_request = asyncio.create_task(
+                        proxied.post(
+                            "http://127.0.0.1:9090/submit",
+                            json={
+                                "email": "student@example.test",
+                                "phone": "+6281234567890",
+                                "card": "4111111111111111",
+                            },
+                        )
+                    )
+                    await page.get_by_role("dialog").wait_for()
+                    await page.reload()
+                    await page.get_by_text("Guardian connected", exact=True).wait_for()
+                    restored = page.get_by_role("dialog")
+                    await restored.wait_for()
+                    assert not reconnect_request.done()
+                    restored_text = (await restored.inner_text()).lower()
+                    detection.append(
+                        all(
+                            label in restored_text
+                            for label in ("email", "mobile number", "payment card")
+                        )
+                    )
+                    assert (
+                        await decide_in_browser(
+                            restored, "Block transfer", reconnect_request
+                        )
+                    ).status_code == 403
+                    await restored.wait_for(state="hidden")
                     await page.get_by_role(
                         "button", name="Settings", exact=True
                     ).click()
@@ -265,10 +339,12 @@ async def main():
             dummy = [flow for flow in snapshot["flows"] if flow["method"] == "POST"]
             report = {
                 "measured_at": datetime.now(UTC).isoformat(),
-                "sample_requests": 3,
+                "sample_requests": len(detection),
                 "seeded_detection": detection,
                 "attributed_requests": sum(bool(f["process_key"]) for f in dummy),
                 "decision_roundtrip_ms": latencies,
+                "decision_click_to_response_ms": click_latencies,
+                "timing_method": "roundtrip includes Playwright action waiting; click timing starts at captured DOM click and ends after proxy response plus a browser evaluation roundtrip",
                 "download_observed_before_completion": True,
                 "ui_checks": [
                     "halt_once",
@@ -280,6 +356,8 @@ async def main():
                     "redacted_request_detail",
                     "high_priority_alerts",
                     "offline_vector_map",
+                    "pending_halt_after_reload",
+                    "cross_client_rule_sync",
                 ],
                 "public_map_check": args.public_map_check,
                 "map_countries": [
@@ -293,6 +371,15 @@ async def main():
             )
             print(json.dumps(report, indent=2))
     finally:
+        requests = [
+            task
+            for name in ("request", "reconnect_request", "stream")
+            if isinstance((task := locals().get(name)), asyncio.Task)
+        ]
+        for task in requests:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*requests, return_exceptions=True)
         for process in (guardian, origin):
             process.terminate()
             try:

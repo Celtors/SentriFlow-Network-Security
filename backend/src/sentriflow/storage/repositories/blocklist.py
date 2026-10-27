@@ -7,6 +7,7 @@ from sentriflow.storage.db import Database
 class BlocklistRepository:
     def __init__(self, db: Database) -> None:
         self.db = db
+        self.version = 0
 
     async def domains(self) -> list[str]:
         return [
@@ -20,6 +21,7 @@ class BlocklistRepository:
             "DO UPDATE SET enabled=1, source=excluded.source",
             (normalize_host(domain), source),
         )
+        self.version += 1
 
     async def replace_source(self, source: str, domains: set[str]) -> int:
         """Swap one source's domains in ONE transaction (add() commits per row: far too slow
@@ -35,6 +37,7 @@ class BlocklistRepository:
                     [(domain, source) for domain in sorted(domains)],
                 )
                 await connection.commit()
+                self.version += 1
             except BaseException:
                 await connection.rollback()
                 raise

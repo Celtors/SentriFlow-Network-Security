@@ -44,34 +44,41 @@ async def websocket(socket: WebSocket) -> None:
                 # Refresh pending halts after a concurrent/expired decision.
                 rt.bus.publish("system.status", {"message": "Halt already resolved or expired"})
 
-    async with rt.bus.subscribe() as queue:
+    try:
+        async with rt.bus.subscribe() as queue:
 
-        async def send() -> None:
-            await socket.send_json(
-                {
-                    "type": "system.status",
-                    "ts": utc_now().isoformat(),
-                    "data": {
-                        "proxy_running": rt.proxy_running,
-                        "pending_halts": [h.model_dump(mode="json") for h in rt.halts.pending()],
-                    },
-                }
-            )
-            while True:
-                event = await queue.get()
-                if event is None:
-                    await socket.close(code=1013)
-                    return
-                await socket.send_json(event.model_dump(mode="json"))
+            async def send() -> None:
+                await socket.send_json(
+                    {
+                        "type": "system.status",
+                        "ts": utc_now().isoformat(),
+                        "data": {
+                            "proxy_running": rt.proxy_running,
+                            "pending_halts": [
+                                h.model_dump(mode="json") for h in rt.halts.pending()
+                            ],
+                            "snapshot": await rt.snapshot(),
+                        },
+                    }
+                )
+                while True:
+                    event = await queue.get()
+                    if event is None:
+                        await socket.close(code=1013)
+                        return
+                    await socket.send_json(event.model_dump(mode="json"))
 
-        tasks = [asyncio.create_task(send()), asyncio.create_task(receive())]
-        try:
-            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            for task in done:
-                task.result()
-        except (WebSocketDisconnect, RuntimeError):
-            pass
-        finally:
-            for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            tasks = [asyncio.create_task(send()), asyncio.create_task(receive())]
+            try:
+                done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    task.result()
+            except (WebSocketDisconnect, RuntimeError):
+                pass
+            finally:
+                for task in tasks:
+                    task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+    except asyncio.CancelledError:
+        # Client/server cancellation can race with the normal disconnect cleanup.
+        return

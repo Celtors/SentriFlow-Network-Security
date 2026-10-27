@@ -1,5 +1,7 @@
 # R4 merge integration
 
+Current integrated status: [implementation-status.md](implementation-status.md); run/check guide: [integration.md](integration.md). Earlier role-specific evidence below is retained as history.
+
 The R4 branch introduced a complete prototype backend as well as the dashboard. Its initial
 frame WebSocket auth, synchronous repositories, database JSON shape and runtime settings
 differed from the already merged R1/R2/R3 implementation. The merge uses one application
@@ -13,7 +15,7 @@ Contract decisions:
   delegates to it. The standalone R1 spike remains available.
 - REST accepts the existing session header/Bearer token. WebSocket authenticates in the
   `sentriflow` subprotocol handshake. The UI supports the printed URL fragment and manual
-  login. It fetches `/snapshot` after connecting and unwraps canonical Halt envelopes.
+  login. It receives an authoritative snapshot in the first WS status, refreshes after changes, and unwraps canonical Halt envelopes.
 - Shared settings use `large_upload_bytes` and `tracker_policy`. CA install requires
   `{confirmed:true}`. Rule editing uses `PUT /rules/{id}` rather than creating duplicate IDs.
 - New remembered rules use the executable identity when known. Legacy name/domain/wildcard

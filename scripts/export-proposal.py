@@ -1,5 +1,6 @@
 """Render the five Mermaid diagrams and an A4 draft PDF entirely on this machine."""
 
+import argparse
 import asyncio
 import hashlib
 import json
@@ -15,13 +16,27 @@ PROPOSAL = ROOT / "docs/proposal"
 
 
 async def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--browser-path",
+        type=Path,
+        help="Optional installed Chromium/Chrome executable",
+    )
+    args = parser.parse_args()
     mermaid = PROPOSAL / "tools/node_modules/mermaid/dist/mermaid.min.js"
     if not mermaid.is_file():
         raise SystemExit("Run npm ci --prefix docs/proposal/tools first")
     exported = PROPOSAL / "diagrams/exported"
     exported.mkdir(exist_ok=True)
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(channel="msedge", headless=True)
+        browser = await playwright.chromium.launch(
+            **(
+                {"executable_path": str(args.browser_path)}
+                if args.browser_path
+                else {"channel": "msedge"}
+            ),
+            headless=True,
+        )
         context = await browser.new_context(
             viewport={"width": 1800, "height": 1200}, device_scale_factor=2
         )

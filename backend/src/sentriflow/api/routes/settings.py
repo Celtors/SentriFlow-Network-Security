@@ -22,4 +22,5 @@ async def update_settings(body: SettingsInput, rt: RT) -> dict[str, Any]:
     config = Settings.model_validate({**rt.config.model_dump(), **values})
     await rt.settings.save(values)
     rt.config = config
+    rt.bus.publish("settings.updated", {})
     return await settings(rt)

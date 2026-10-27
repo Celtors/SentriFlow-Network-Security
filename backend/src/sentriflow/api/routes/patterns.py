@@ -18,7 +18,9 @@ async def patterns(rt: RT) -> list[CustomPattern]:
 @router.post("/patterns", status_code=201)
 async def create_pattern(body: CustomPattern, rt: RT) -> CustomPattern:
     try:
-        return await rt.patterns.save(body)
+        pattern = await rt.patterns.save(body)
+        rt.bus.publish("patterns.updated", {"id": pattern.id})
+        return pattern
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
 
@@ -34,3 +36,4 @@ async def update_pattern(pattern_id: str, body: CustomPattern, rt: RT) -> Custom
 async def delete_pattern(pattern_id: str, rt: RT) -> None:
     if not await rt.patterns.delete(pattern_id):
         raise HTTPException(404, "Pattern not found")
+    rt.bus.publish("patterns.updated", {"id": pattern_id})

@@ -3,14 +3,13 @@
 import argparse
 import asyncio
 import contextlib
-import json
 import logging
-import os
+import signal
 import sys
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 
-import psutil
 import uvicorn
 from mitmproxy import options
 from mitmproxy.tools.dump import DumpMaster
@@ -25,26 +24,11 @@ from sentriflow.os_adapters.windows.file_acl import restrict_private_directory
 from sentriflow.os_adapters.windows.system_proxy import SystemProxy
 from sentriflow.proxy.addon import ConsoleFlowAddon, SentriFlowAddon
 from sentriflow.proxy.process_resolver import ProcessResolver
+from sentriflow.session import acquire_session as acquire_session
+from sentriflow.session import maintenance_session
 
 DEFAULT_HOST = LOOPBACK
 DEFAULT_PORT = PROXY_PORT
-
-
-def acquire_session(data_dir: Path) -> Path:
-    """R4's per-directory session lock, checked against PID creation time."""
-    lock = data_dir / "session.lock"
-    if lock.exists():
-        previous = json.loads(lock.read_text(encoding="utf-8"))
-        try:
-            process = psutil.Process(previous["pid"])
-            if abs(process.create_time() - previous["created"]) < 0.01:
-                raise RuntimeError("Another SentriFlow instance is using this data directory")
-        except psutil.Error:
-            pass
-        lock.unlink()
-    with lock.open("x", encoding="utf-8") as stream:
-        json.dump({"pid": os.getpid(), "created": psutil.Process().create_time()}, stream)
-    return lock
 
 
 def create_master(runtime: Runtime) -> DumpMaster:
@@ -59,18 +43,67 @@ def create_master(runtime: Runtime) -> DumpMaster:
     return master
 
 
-async def run(config: Settings, *, system_proxy: bool = False, api_only: bool = False) -> None:
+class EmbeddedApiServer(uvicorn.Server):
+    """The application owns signals so Uvicorn cannot re-raise them before proxy cleanup."""
+
+    @contextlib.contextmanager
+    def capture_signals(self):
+        yield
+
+
+@contextlib.contextmanager
+def shutdown_signals(stopping: asyncio.Event):
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    loop = asyncio.get_running_loop()
+    handled = [signal.SIGINT, signal.SIGTERM]
+    if sys.platform == "win32":
+        handled.append(signal.SIGBREAK)
+    previous = {
+        sig: signal.signal(sig, lambda *_: loop.call_soon_threadsafe(stopping.set))
+        for sig in handled
+    }
+    try:
+        yield
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+
+
+async def run(
+    config: Settings,
+    *,
+    system_proxy: bool = False,
+    api_only: bool | None = None,
+    import_path: Path | None = None,
+) -> None:
+    api_only = config.api_only if api_only is None else api_only
     if system_proxy and (sys.platform != "win32" or api_only):
         raise ValueError("System routing requires Windows and the local proxy")
-    restrict_private_directory(config.data_dir)
-    lock = acquire_session(config.data_dir)
+    with maintenance_session(config.data_dir):
+        await run_session(
+            config, system_proxy=system_proxy, api_only=api_only, import_path=import_path
+        )
+
+
+async def run_session(
+    config: Settings,
+    *,
+    system_proxy: bool,
+    api_only: bool,
+    import_path: Path | None,
+) -> None:
     configure_logging(config.data_dir, config.log_level)
     runtime = Runtime(config)
     if sys.platform == "win32":
         runtime.system_proxy = SystemProxy(config.data_dir / "state.json", config.proxy_port)
     master = None
-    tasks: list[asyncio.Task] = []
-    server = uvicorn.Server(
+    services: list[asyncio.Task] = []
+    ticker = None
+    stopping = asyncio.Event()
+    stop_task = asyncio.create_task(stopping.wait())
+    server = EmbeddedApiServer(
         uvicorn.Config(
             create_app(runtime),
             host=LOOPBACK,
@@ -81,57 +114,74 @@ async def run(config: Settings, *, system_proxy: bool = False, api_only: bool = 
             timeout_graceful_shutdown=3,
         )
     )
-    try:
-        await runtime.open()
-        if not api_only:
-            await asyncio.to_thread(prepare_ca, config.ca_dir)
-            master = create_master(runtime)
-            tasks.append(asyncio.create_task(master.run()))
-        tasks.append(asyncio.create_task(server.serve()))
-        tasks.append(asyncio.create_task(runtime.speed_ticker()))
-        # Do not change system routing until both listening services report ready.
-        for _ in range(200):
-            if any(task.done() for task in tasks):
-                for task in tasks:
-                    if task.done():
-                        task.result()
-                raise RuntimeError("A service stopped during startup")
-            if server.started and (master is None or runtime.proxy_running):
-                break
-            await asyncio.sleep(0.05)
-        else:
-            raise RuntimeError("Timed out starting local services")
-        runtime.proxy_running = master is not None
-        if system_proxy:
-            await asyncio.to_thread(runtime.system_proxy.enable)
-        print(f"Dashboard: http://{LOOPBACK}:{config.api_port}/#token={runtime.token}", flush=True)
-        print(
-            "Session token is in the URL fragment; use it as X-SentriFlow-Token for REST.",
-            flush=True,
-        )
-        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        for task in tasks:
-            if task.done():
-                task.result()
-    finally:
-        runtime.halts.shutdown()
-        # Restoration precedes stopping the listener, including on partial startup failure.
+    with shutdown_signals(stopping):
         try:
-            if runtime.system_proxy and runtime.system_proxy.enabled:
-                await asyncio.to_thread(runtime.system_proxy.restore)
+            await runtime.open()
+            if import_path:
+                from sentriflow.intel.blocklist_loader import parse_domains
+
+                domains, skipped = parse_domains(import_path.read_text(encoding="utf-8"))
+                count = await runtime.blocklist.replace_source(import_path.name, domains)
+                print(f"Imported {count} domains; skipped {skipped} unsupported entries.")
+            if not api_only:
+                await asyncio.to_thread(prepare_ca, config.ca_dir)
+                master = create_master(runtime)
+                services.append(asyncio.create_task(master.run()))
+            services.append(asyncio.create_task(server.serve()))
+            ticker = asyncio.create_task(runtime.speed_ticker())
+            for _ in range(200):
+                if stopping.is_set():
+                    return
+                if any(task.done() for task in services):
+                    for task in services:
+                        if task.done():
+                            task.result()
+                    raise RuntimeError("A service stopped during startup")
+                if server.started and (master is None or runtime.proxy_running):
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                raise RuntimeError("Timed out starting local services")
+            runtime.proxy_running = master is not None
+            if system_proxy:
+                await asyncio.to_thread(runtime.system_proxy.enable)
+            print(
+                f"Dashboard: http://{LOOPBACK}:{config.api_port}/#token={runtime.token}", flush=True
+            )
+            print(
+                "Session token is in the URL fragment; use it as X-SentriFlow-Token for REST.",
+                flush=True,
+            )
+            done, _ = await asyncio.wait(
+                [*services, ticker, stop_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for task in done:
+                task.result()
         finally:
-            runtime.proxy_running = False
-            if master:
-                master.shutdown()
-            server.should_exit = True
-            for task in tasks:
-                task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await asyncio.gather(*tasks, return_exceptions=True)
+            runtime.halts.shutdown()
             try:
-                await runtime.close()
+                if runtime.system_proxy and runtime.system_proxy.enabled:
+                    await asyncio.to_thread(runtime.system_proxy.restore)
             finally:
-                lock.unlink(missing_ok=True)
+                # Restore routing first; finish service hooks while the database is open.
+                if master:
+                    master.shutdown()
+                server.should_exit = True
+                stop_task.cancel()
+                if ticker:
+                    ticker.cancel()
+                await asyncio.gather(
+                    stop_task, *([ticker] if ticker else []), return_exceptions=True
+                )
+                try:
+                    await asyncio.wait_for(asyncio.gather(*services, return_exceptions=True), 5)
+                except TimeoutError:
+                    for task in services:
+                        task.cancel()
+                    await asyncio.gather(*services, return_exceptions=True)
+                finally:
+                    runtime.proxy_running = False
+                    await runtime.close()
 
 
 async def serve(

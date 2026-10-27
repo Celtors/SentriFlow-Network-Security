@@ -1,39 +1,50 @@
 erDiagram
   direction LR
   flows ||--o{ alerts : raises
-  flows ||--o| score_events : contributes
+  flows ||--o{ score_events : reserved
   flows {
     TEXT id PK
     TEXT ts
     TEXT process_key
     TEXT process_name
+    TEXT destination_ip
     TEXT host
+    TEXT state
     TEXT verdict
-    TEXT data
+    TEXT findings_json
   }
   alerts {
     TEXT id PK
     TEXT flow_id FK
     TEXT ts
-    TEXT data
+    TEXT pattern_label
+    TEXT masked_sample
   }
   rules {
     TEXT id PK
     TEXT process_match
+    TEXT process_name
     TEXT host_match
-    TEXT data
+    TEXT action
   }
   blocklist_domains {
     TEXT domain PK
     TEXT source
     INTEGER enabled
   }
+  custom_patterns {
+    TEXT id PK
+    TEXT label
+    TEXT pattern
+    INTEGER is_regex
+  }
   settings {
     TEXT key PK
     TEXT value
   }
   score_events {
-    TEXT flow_id PK,FK
+    TEXT id PK
+    TEXT flow_id FK
     INTEGER delta
     TEXT reason
   }

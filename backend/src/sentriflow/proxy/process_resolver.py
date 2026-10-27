@@ -24,24 +24,29 @@ class ProcessResolver:
         if ttl < 0:
             raise ValueError("cache_ttl must be non-negative")
         self.proxy_port, self.ttl = proxy_port, ttl
-        self._cache: dict[int, tuple[float, ProcessInfo]] = {}
+        self._cache: dict[tuple[str | None, int], tuple[float, ProcessInfo]] = {}
 
-    async def resolve(self, client_port: int | None) -> ProcessInfo:
+    async def resolve(self, client_port: int | None, client_host: str | None = None) -> ProcessInfo:
         """Resolve off the event loop; invalid or inaccessible ports remain unknown."""
         if client_port is None or not 0 < client_port <= 65535:
             return ProcessInfo(name=UNKNOWN_PROCESS)
         now = time.monotonic()
-        cached = self._cache.get(client_port)
+        key = (client_host, client_port)
+        cached = self._cache.get(key)
         if cached and cached[0] > now:
             return cached[1]
-        result = await asyncio.to_thread(self._lookup, client_port)
+        result = (
+            await asyncio.to_thread(self._lookup, client_port, client_host)
+            if client_host
+            else (await asyncio.to_thread(self._lookup, client_port))
+        )
         self._expire(time.monotonic())
         if len(self._cache) >= 1024:
             self._cache.pop(next(iter(self._cache)))
-        self._cache[client_port] = (time.monotonic() + self.ttl, result)
+        self._cache[key] = (time.monotonic() + self.ttl, result)
         return result
 
-    def _lookup(self, client_port: int) -> ProcessInfo:
+    def _lookup(self, client_port: int, client_host: str | None = None) -> ProcessInfo:
         try:
             connections = psutil.net_connections(kind="tcp")
         except (psutil.AccessDenied, OSError):
@@ -50,6 +55,7 @@ class ProcessResolver:
             if not (
                 connection.laddr
                 and connection.laddr.port == client_port
+                and (client_host is None or connection.laddr.ip == client_host)
                 and connection.raddr
                 and connection.raddr.port == self.proxy_port
                 and connection.pid is not None

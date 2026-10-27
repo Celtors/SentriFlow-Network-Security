@@ -137,3 +137,18 @@ async def test_cache_expiration(monkeypatch):
 def test_invalid_cache_ttl():
     with pytest.raises(ValueError, match="non-negative"):
         ProcessResolver(cache_ttl=-1)
+
+
+@pytest.mark.asyncio
+async def test_client_address_is_part_of_process_lookup_and_cache(monkeypatch):
+    connections = [
+        NS(laddr=NS(ip="127.0.0.2", port=49152), raddr=NS(port=8080), pid=2),
+        NS(laddr=NS(ip="127.0.0.1", port=49152), raddr=NS(port=8080), pid=1),
+    ]
+    monkeypatch.setattr(psutil, "net_connections", lambda kind: connections)
+    monkeypatch.setattr(
+        psutil, "Process", lambda pid: NS(name=lambda: f"app{pid}.exe", exe=lambda: "")
+    )
+    resolver = ProcessResolver()
+    assert (await resolver.resolve(49152, "127.0.0.1")).pid == 1
+    assert (await resolver.resolve(49152, "127.0.0.2")).pid == 2

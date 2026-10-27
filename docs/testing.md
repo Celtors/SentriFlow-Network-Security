@@ -10,7 +10,7 @@ Install `backend[dev]` with Python 3.12. From the repository root:
 .venv/bin/python -I -m sentriflow.verification --output docs/evidence/kpis.json
 ```
 
-On Windows use `.venv\Scripts\python.exe`; `scripts\test.ps1` also runs frontend lint/build.
+On Windows use `.venv\Scripts\python.exe`; `scripts\test.ps1` also runs frontend lint/tests/build.
 Isolated Python mode avoids unrelated host Python/pytest plugins. Tests require permission
 to create local sockets; no internet or administrator privileges are required by the tests.
 
@@ -38,7 +38,7 @@ the OS TCP connection table for uncached client ports; high concurrency needs pr
 
 The test fixture does not install a certificate into any system store or modify routing.
 Windows registry tests use an injected fake adapter. Linux attribution is limited to local
-test connections. Two CLI lifecycle tests use POSIX SIGTERM and are skipped on Windows.
+test connections. CLI lifecycle tests use POSIX SIGTERM and are skipped on Windows.
 
 Native Windows acceptance must add genuine evidence for these cases:
 
@@ -79,3 +79,12 @@ applied to the next connection; score recovered by 5 points after each Block in 
 Rows 1 and 5 (and the optional manual checks) need a person at the PC: they change the Windows
 system proxy and trust a temporary CA for the current user. The procedure is in the "Native Windows
 acceptance" table above. Row 1 and row 5 results must be added here once measured.
+
+
+## Four-role integration verification
+
+See [integration.md](integration.md) and [the current browser report](evidence/integration/local-demo-report.json).
+Tests cover reconnecting to an existing hold, cross-client settings/rule/pattern events, exact
+source-IP process attribution, blocklist cache invalidation and independent data paths, API-only
+environment/import handling, maintenance ownership and cleanup on real process termination.
+The updated proposal export uses the same contracts and reports zero external requests.

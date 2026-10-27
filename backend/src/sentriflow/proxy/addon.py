@@ -35,7 +35,8 @@ class SentriFlowAddon:
             ):
                 flow.response = http.Response.make(403, b"Dashboard must bypass the proxy.\n")
                 return
-            process = await self.runtime.resolver.resolve(flow.client_conn.peername[1])
+            peer = flow.client_conn.peername
+            process = await self.runtime.resolver.resolve(peer[1], peer[0])
             metadata = Flow(
                 id=flow.id,
                 pid=process.pid,
@@ -127,7 +128,7 @@ class SentriFlowAddon:
     async def tls_failed_client(self, data: tls.TlsData) -> None:
         # No inference that failed TLS definitely means pinning. Do not bypass upstream TLS checks.
         client, server = data.context.client, data.context.server
-        process = await self.runtime.resolver.resolve(client.peername[1])
+        process = await self.runtime.resolver.resolve(client.peername[1], client.peername[0])
         address = server.address or (client.sni or "Unknown", 443)
         await self.runtime.complete(
             Flow(

@@ -17,11 +17,15 @@ class Settings(BaseSettings):
     halt_timeout_seconds: float = Field(default=30, ge=0.05, le=300)
     large_upload_bytes: int = Field(default=1_048_576, ge=1)
     inspection_enabled: bool = True
+    api_only: bool = False
     tracker_policy: Literal["ask", "block", "alert"] = "ask"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     frontend_dir: Path = Field(default_factory=lambda: Path(__file__).parent / "web")
     geoip_database: Path = Field(
         default_factory=lambda: Path(__file__).parent / "data" / "geoip" / "dbip-country-lite.mmdb"
+    )
+    blocklist_dir: Path = Field(
+        default_factory=lambda: Path(__file__).parent / "data" / "blocklists"
     )
 
     @model_validator(mode="after")

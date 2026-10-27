@@ -1,0 +1,35 @@
+{
+  "measured_at": "2026-10-27T13:21:31.556982+00:00",
+  "sample_requests": 4,
+  "seeded_detection": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "attributed_requests": 4,
+  "decision_roundtrip_ms": [
+    836.03,
+    596.45,
+    1311.06,
+    1748.94
+  ],
+  "download_observed_before_completion": true,
+  "ui_checks": [
+    "halt_once",
+    "remember",
+    "edit_rule",
+    "delete_rule",
+    "save_settings",
+    "mobile_layout",
+    "redacted_request_detail",
+    "high_priority_alerts",
+    "offline_vector_map",
+    "pending_halt_after_reload",
+    "cross_client_rule_sync"
+  ],
+  "public_map_check": false,
+  "map_countries": [],
+  "external_browser_requests": [],
+  "limitations": "Small local dummy sample. No real CA/proxy/firewall changes made."
+}

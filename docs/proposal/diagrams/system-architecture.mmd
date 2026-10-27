@@ -3,10 +3,10 @@ flowchart TB
   Proxy --> Decision[Rules and Halt]
   Decision -->|Allow| Origin[Origin server]
   Decision -->|Block| Reject[Local 403]
-  Decision <--> Runtime[Shared Runtime]
+  Decision <--> Runtime[application.Runtime]
   Runtime <--> SQLite[(Local SQLite)]
   Origin -->|Stream counters| Runtime
   Proxy -->|Observed IP| Geo[Offline country MMDB]
   Geo --> Runtime
-  Runtime <--> API[Local REST and WebSocket]
+  Runtime <--> API[Shared snapshot, REST and WebSocket]
   API <--> UI[Dashboard and offline map]

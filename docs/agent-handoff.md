@@ -1,5 +1,7 @@
 # Agent handoff: current scaffold implementation
 
+Current integrated status: [implementation-status.md](implementation-status.md); run/check guide: [integration.md](integration.md). Earlier role-specific evidence below is retained as history.
+
 Merged runtime/contracts: see [merge-r4.md](merge-r4.md). The branch-specific history and evidence below are preserved from R4's original checkout.
 
 **R4 update, 27 October 2026:** see [r4-delivery.md](r4-delivery.md). Offline GeoIP/Leaflet map, request detail, severity filtering and Halt error UX are implemented; five diagrams now have SVG/PNG exports, and the proposal has a 13-page A4 PDF working draft. Current checks: 48 backend / 8 frontend tests, Ruff/mypy/ESLint/build and expanded real Edge flow passed. The optional public-map check used one non-personal example.com request and recorded zero external browser requests. Remaining field validation and submission limits are documented there. The paragraphs below describe the preceding handoff and its original state; use the current R4 status for map/PDF completion.

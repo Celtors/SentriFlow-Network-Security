@@ -1,10 +1,10 @@
 flowchart TD
-  Dashboard --> Boundary[Local peer, Host and Origin checks]
+  Dashboard --> Boundary[Loopback binding, Host and Origin checks]
   Boundary --> Auth[Per-run token authentication]
   Auth --> REST[REST /api routes]
-  Auth --> WS[WebSocket /ws initial-frame auth]
-  REST --> Runtime[Shared Runtime]
-  WS <--> Events[Bounded event bus and snapshots]
+  Auth --> WS[WebSocket /ws subprotocol token auth]
+  REST --> Runtime[application.Runtime]
+  WS <--> Events[Initial snapshot and bounded event queue]
   Events <--> Runtime
   Runtime --> Repositories[SQLite repositories]
   Runtime --> Halts[Halt manager]

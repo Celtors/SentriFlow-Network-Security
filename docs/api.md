@@ -76,7 +76,8 @@ ws.send(JSON.stringify({
 
 Every server event has `{type,ts,data}`. Types: `flow.started`, `flow.completed`,
 `halt.requested`, `halt.resolved`, `alert.created`, `score.updated`, `speed.tick`,
-`system.status`. Initial `system.status` includes `pending_halts` and `proxy_running`.
+`system.status`, `rules.updated`, `patterns.updated`, `settings.updated`. Initial `system.status`
+includes `pending_halts`, `proxy_running` and an authoritative dashboard `snapshot`.
 Fetch `/halts/pending`, `/flows` and `/score` on connection/reconnection to reconcile state.
 Decisions are not automatically replayed across reconnects. Unanswered holds still time out.
 
@@ -86,8 +87,8 @@ response bytes count as chunks arrive, before completion. Zero interval deltas p
 rates. Traffic bypassing the proxy and protocol overhead are excluded. Outgoing request
 bodies remain buffered for inspection and Halt-before-forward.
 
-The dashboard fetches `/snapshot` on every WebSocket connection and refreshes it after state
-events. It unwraps the canonical `halt.requested` `{id,flow,deadline}` envelope into a held
+The dashboard initializes from the first WebSocket status snapshot, then refreshes `/snapshot`
+after state/configuration events. The subscription precedes the snapshot; queued events follow it. It unwraps the canonical `halt.requested` `{id,flow,deadline}` envelope into a held
 flow for display. `/halts/pending` keeps that canonical envelope for existing REST clients.
 Its settings use `large_upload_bytes` and `tracker_policy`; CA installation sends
 `{confirmed:true}`. Rule editing uses `PUT /rules/{id}` and preserves the rule ID.

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from sentriflow import __version__
 from sentriflow.config import Settings
+from sentriflow.session import maintenance_session
 
 COMMANDS = ["run", "doctor", "restore-proxy", "install-ca", "remove-ca", "seed-demo", "reset"]
 
@@ -15,18 +16,21 @@ async def seed_demo(config: Settings) -> None:
     from sentriflow.application import Runtime
     from sentriflow.core.models import CustomPattern
 
-    runtime = Runtime(config)
-    await runtime.open()
-    try:
-        await runtime.patterns.save(
-            CustomPattern(id="demo-name", label="Demo name", pattern="Alex Example")
-        )
-        await runtime.patterns.save(
-            CustomPattern(id="demo-canary", label="project_canary", pattern="dummy-project-canary")
-        )
-        await runtime.blocklist.add("tracker.demo.test", "demo (synthetic)")
-    finally:
-        await runtime.close()
+    with maintenance_session(config.data_dir):
+        runtime = Runtime(config)
+        try:
+            await runtime.open()
+            await runtime.patterns.save(
+                CustomPattern(id="demo-name", label="Demo name", pattern="Alex Example")
+            )
+            await runtime.patterns.save(
+                CustomPattern(
+                    id="demo-canary", label="project_canary", pattern="dummy-project-canary"
+                )
+            )
+            await runtime.blocklist.add("tracker.demo.test", "demo (synthetic)")
+        finally:
+            await runtime.close()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,7 +42,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--proxy-port", type=int)
     parser.add_argument("--import-blocklist", type=Path)
     parser.add_argument("--system-proxy", action="store_true", help="Opt in to Windows routing")
-    parser.add_argument("--api-only", action="store_true", help="Run REST/WS without interception")
+    parser.add_argument(
+        "--api-only", action="store_true", default=None, help="Run REST/WS without interception"
+    )
     parser.add_argument("--consent", action="store_true", help="Consent to current-user CA trust")
     parser.add_argument("--confirm", action="store_true", help="Confirm history deletion")
     args = parser.parse_args(argv)
@@ -53,26 +59,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "run":
             from sentriflow.proxy.runner import run
 
-            if args.import_blocklist:
-                from sentriflow.application import Runtime
-                from sentriflow.intel.blocklist_loader import parse_domains
-
-                async def import_domains() -> None:
-                    rt = Runtime(config)
-                    await rt.open()
-                    try:
-                        domains, skipped = parse_domains(
-                            args.import_blocklist.read_text(encoding="utf-8")
-                        )
-                        count = await rt.blocklist.replace_source(
-                            args.import_blocklist.name, domains
-                        )
-                        print(f"Imported {count} domains; skipped {skipped} unsupported entries.")
-                    finally:
-                        await rt.close()
-
-                asyncio.run(import_domains())
-            asyncio.run(run(config, system_proxy=args.system_proxy, api_only=args.api_only))
+            asyncio.run(
+                run(
+                    config,
+                    system_proxy=args.system_proxy,
+                    api_only=args.api_only,
+                    import_path=args.import_blocklist,
+                )
+            )
         elif args.command == "seed-demo":
             asyncio.run(seed_demo(config))
             print("Seeded dummy name and synthetic tracker; no external lists downloaded.")
@@ -108,10 +102,11 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "reset":
             if not args.confirm:
                 parser.error("reset requires --confirm (stop SentriFlow first)")
-            if (config.data_dir / "state.json").exists():
-                raise ValueError("Restore the system proxy before resetting")
-            for suffix in ("", "-wal", "-shm"):
-                Path(str(config.database_path) + suffix).unlink(missing_ok=True)
+            with maintenance_session(config.data_dir):
+                if (config.data_dir / "state.json").exists():
+                    raise ValueError("Restore the system proxy before resetting")
+                for suffix in ("", "-wal", "-shm"):
+                    Path(str(config.database_path) + suffix).unlink(missing_ok=True)
             print(
                 "Local database cleared. CA files and trust are retained; use remove-ca to untrust."
             )

@@ -53,7 +53,7 @@ excludes network/protocol overhead and traffic outside the proxy.
 
 The event bus has bounded per-client queues. Slow clients disconnect with 1013 and must
 reload pending halts and history on reconnect. WebSocket disconnect never releases a hold.
-R4's dashboard initializes from `/api/snapshot`, unwraps Halt envelopes for the modal, and
+R4's dashboard initializes from the snapshot in the first WS status, unwraps Halt envelopes, and
 resynchronizes after reconnects/state changes. Its authentication uses the backend's existing
 token/header and WebSocket subprotocol contract. Sensitive pattern definitions remain local
 and persistent, with values omitted from the dashboard snapshot.
@@ -75,3 +75,6 @@ stored with a restricted ACL, and installed/removed only by explicit current-use
 
 The hook follows [mitmproxy's async addon API](https://docs.mitmproxy.org/stable/addons/examples/).
 The API uses [FastAPI's WebSocket transport](https://fastapi.tiangolo.com/advanced/websockets/).
+
+The integrated runner owns SIGINT/SIGTERM (and Windows SIGBREAK) so embedded Uvicorn cannot
+re-raise a signal before proxy/database/lock cleanup. See [integration.md](integration.md).

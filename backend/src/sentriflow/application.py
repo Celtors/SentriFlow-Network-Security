@@ -52,6 +52,9 @@ class Runtime:
         self.active: dict[str, Flow] = {}
         self._speed: dict[str, dict[str, Any]] = {}
         self._counted: set[str] = set()
+        self._trackers = TrackerMatcher()
+        self._tracker_version = -1
+        self._tracker_lock = asyncio.Lock()
 
     async def open(self) -> None:
         await asyncio.to_thread(restrict_private_directory, self.config.data_dir)
@@ -63,9 +66,7 @@ class Runtime:
                 **{key: value for key, value in persisted.items() if key in EDITABLE_SETTINGS},
             }
         )
-        await load_bundled(
-            self.blocklist, self.settings, self.config.geoip_database.parents[1] / "blocklists"
-        )
+        await load_bundled(self.blocklist, self.settings, self.config.blocklist_dir)
         self.started = True
 
     async def close(self) -> None:
@@ -75,6 +76,13 @@ class Runtime:
         self.started = False
 
     async def inspect(self, flow: Flow, url: str, headers: dict[str, str], body: bytes) -> Decision:
+        async with self._tracker_lock:
+            version = self.blocklist.version
+            if version != self._tracker_version:
+                self._trackers = await asyncio.to_thread(
+                    TrackerMatcher, await self.blocklist.domains()
+                )
+                self._tracker_version = version
         flow.findings = await asyncio.to_thread(
             analyze,
             flow.host,
@@ -82,7 +90,7 @@ class Runtime:
             headers,
             body,
             patterns=await self.patterns.list(),
-            trackers=TrackerMatcher(await self.blocklist.domains()),
+            trackers=self._trackers,
             enabled=self.config.inspection_enabled,
         )
         decision = evaluate(

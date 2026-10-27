@@ -8,14 +8,16 @@ also runs on Linux for development with an explicit proxy. Windows routing and c
 trust remain Windows adapters. The repository architecture is documented in
 [SentriFlow_Build_Plan.md](SentriFlow_Build_Plan.md).
 
-Audric Yusuf Maynard Simatupang's assignments follow the **named R2 assignments in the
-7-day tracker**, which differ from the generic role numbering in the build plan.
-[Implementation status and evidence](docs/audric-worklog.md) records the handoff.
+R1's proxy/Windows work, R2's backend and Halt engine, R3's inspection/data work, and
+R4's dashboard now run as one application. See the [current implementation status](docs/implementation-status.md)
+and [integrated run/check guide](docs/integration.md). The original named assignments and
+earlier evidence remain in [Audric's worklog](docs/audric-worklog.md).
 
 On Windows, from the repository root:
 
 ```powershell
 .\scripts\setup.ps1                 # Python venv, backend/dev dependencies, npm ci
+.\scripts\build.ps1                 # Package the dashboard into the backend
 .\scripts\run.ps1                   # Proxy :8080 and API :8787, loopback only
 # Optional Windows actions, performed explicitly:
 .\.venv\Scripts\python.exe -I -m sentriflow install-ca --consent
@@ -41,6 +43,8 @@ For Linux backend development:
 ```bash
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -e 'backend[dev]'
+npm --prefix frontend ci
+.venv/bin/python -I scripts/build.py
 .venv/bin/python -I -m sentriflow run
 ```
 
@@ -65,4 +69,4 @@ Country lookup uses a manually installed local MMDB and bundled map shapes. Miss
 reported explicitly; the app never downloads it or uses online tiles. R3's bundled blocklist
 loader and R4's explicit `--import-blocklist` command share domain validation. Anomaly detection,
 native Windows acceptance, a representative KPI session, and a backup recording remain pending.
-See [the R4 merge notes](docs/merge-r4.md) for the shared contracts and preserved branch evidence.
+See [the integrated run and verification guide](docs/integration.md) for the shared contracts and preserved branch evidence.

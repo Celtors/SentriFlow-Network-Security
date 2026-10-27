@@ -19,6 +19,9 @@ EventType = Literal[
     "alert.created",
     "score.updated",
     "system.status",
+    "rules.updated",
+    "patterns.updated",
+    "settings.updated",
 ]
 
 

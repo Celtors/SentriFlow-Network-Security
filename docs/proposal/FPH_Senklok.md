@@ -19,15 +19,15 @@ Application firewalls and protocol analyzers already address important parts of 
 
 ## Proposed Solution
 
-The owner explicitly routes a client to a loopback proxy. SentriFlow identifies the client socket's process where possible, scans supported representations for email, Indonesian-phone heuristics, Luhn-valid card candidates and session-sensitive literals, and checks local tracker domains. Risky or incompletely inspected requests enter Halt. The dashboard displays process, host, size and redacted pattern labels. The user can Allow/Block once or remember a process/exact-host decision; silence defaults to Block.
+The owner explicitly routes a client to a loopback proxy. SentriFlow identifies the client socket's process where possible, scans supported representations for email, Indonesian-phone heuristics, Luhn-valid card candidates and locally configured sensitive strings, and checks local tracker domains. Risky or incompletely inspected requests enter Halt. The dashboard displays process, host, size and redacted pattern labels. The user can Allow/Block once or remember a process/exact-host decision; silence defaults to Block.
 
-In the local demonstration a client submits a dummy email, phone and test card to a local origin. The real dashboard presents Halt before the payload arrives at the origin. Block produces a local 403; Allow reaches the origin. The history, alerts and disclosed score update. The privacy score is a ratio of risky resolved requests blocked in retained history, not a claim of total device safety.
+In the local demonstration a client submits a dummy email, phone and test card to a local origin. The real dashboard presents Halt before the payload arrives at the origin. Block produces a local 403; Allow reaches the origin. The history, alerts and disclosed score update. The privacy score starts at 100, subtracts 10 per allowed PII request and 2 per allowed tracker request, adds 5 per blocked PII request and 1 per blocked tracker request, and clamps the result to 0–100. The dashboard discloses the formula; it is not a claim of total device safety.
 
 ## System Design
 
 The implementation follows the supplied repository build plan: Python package under `backend/src/sentriflow`, React pages/hooks/stores, loopback proxy 8080 and dashboard/API 8787. Domain logic has no dependency on API/proxy/Windows adapters. A single asyncio process shares the decision coordinator between mitmproxy and FastAPI. Each hold has its own Future and authoritative deadline. WebSocket events communicate flows, holds, scores and a one-second speed ticker.
 
-Architecture, use-case, Halt, ERD and API diagrams are maintained in `diagrams/`. The [API contract](../api.md) and [architecture](../architecture.md) document actual names and deliberate deviations. SQLite stores redacted records, rules, alerts, source domains and public settings. Raw payloads/headers/URL queries are excluded. Sensitive literals are held in memory only. Startup recovers stale held records as blocked.
+Architecture, use-case, Halt, ERD and API diagrams are maintained in `diagrams/`. The [API contract](../api.md) and [architecture](../architecture.md) document actual names and deliberate deviations. SQLite stores redacted records, rules, alerts, source domains and public settings. Raw payloads/headers/URL queries are excluded. Sensitive literal/regex definitions are persisted locally for future matching; public snapshots omit their values. Raw request content remains in memory only. The API, inspection and proxy share application.Runtime; the runner owns signal handling, restoration and shutdown.
 
 ### Figure 1. System architecture
 
@@ -49,9 +49,9 @@ The authoritative deadline belongs to the backend. The interface countdown expla
 
 ### Figure 4. Database relationships
 
-![Schema v1 database entity relationships](diagrams/exported/database-erd.svg)
+![Schema v2 database entity relationships](diagrams/exported/database-erd.svg)
 
-JSON flow records include the observed destination IP and optional country code. The custom-pattern and process-baseline tables are reserved schema; current sensitive literals remain memory-only and the anomaly baseline is not implemented.
+Relational flow records include observed destination IP, optional country code, lifecycle state and masked findings JSON. Migration 002 preserves schema-v1 history/rules while adding dashboard fields. The custom-pattern table stores user definitions; process-baseline and score-event tables remain reserved, and the anomaly baseline is not implemented.
 
 ### Figure 5. API and event boundary
 
@@ -62,10 +62,10 @@ JSON flow records include the observed destination IP and optional country code.
 | `GET /api/snapshot` | Redacted dashboard state and pending holds |
 | `GET /api/flows`, `/processes`, `/alerts`, `/score` | Retained request details, session rates and activity indicators |
 | `POST /api/halts/{id}/decision` | Allow/Block once or always |
-| `GET/POST/DELETE /api/rules` | Manage persistent process/exact-host rules |
+| `GET/POST/PUT/DELETE /api/rules` | Manage persistent process/exact-host rules |
 | `GET /api/geo/destinations` | Country aggregation from a local MMDB, with unplotted counts |
-| `GET/PUT /api/settings`, `GET/POST/DELETE /api/patterns` | Inspection configuration and session literals |
-| `/ws` | First-frame authentication, typed events and authoritative snapshots |
+| `GET/PUT /api/settings`, `GET/POST/DELETE /api/patterns` | Inspection configuration and locally stored patterns |
+| `/ws` | Subprotocol token authentication, typed events and an initial snapshot |
 
 DELETE routes use resource IDs. Full request/response shapes and the explicit Windows consent routes are defined in the API document.
 
@@ -73,15 +73,15 @@ DELETE routes use resource IDs. Full request/response shapes and the explicit Wi
 
 mitmproxy provides authorized HTTP/HTTPS interception [1]. The asynchronous request hook waits for the verdict before forwarding the request. Response chunks are counted as they arrive, so download rates can update before response completion [2]; outbound request streaming remains disabled to preserve inspection-before-forward. psutil maps the loopback client endpoint to PID/executable identity, returning Unknown if permissions or process lifetime prevent reliable attribution.
 
-Inspection is bounded to 256 KB. Supported text/JSON/form/XML, gzip/deflate and simple multipart fields are inspected; unsupported formats, Brotli, file uploads or truncation prompt as incomplete. Regex-sensitive patterns are rejected pending a safe bounded implementation. The small included domain list is a demo seed, not a complete threat feed. The behavioral baseline remains future work.
+Inspection is bounded to 1 MiB of decoded content; the proxy rejects request bodies above 2 MiB. Supported UTF-8 text/JSON/form/XML, gzip/deflate and multipart text fields are inspected. Unsupported encodings, binary/invalid text and decoding limits prompt as incomplete. Custom regex execution has a timeout. R3's hosts/EasyPrivacy domain subset loads local reviewed files and caches the matcher between updates; no threat feed is silently downloaded. The behavioral baseline remains future work.
 
 The R4 interface provides upload/download rates per application, searchable traffic and redacted request details, the queued Halt prompt, rule editing/deletion, severity-filtered alerts and a disclosed privacy-score breakdown. The responsive black-and-papaya-orange layout uses local assets only. An unsuccessful decision remains visible inside the Halt dialog, and uninspected requests cannot be remembered as Allow.
 
 Destination countries are rendered with Leaflet [4] and bundled Natural Earth shapes [5]. Country estimates are read from a local DB-IP Lite country MMDB [6]. The map groups retained requests, distinguishes blocked transfers and payload sizes, and accounts for private, unobserved or unmatched IPs. It never contacts an online tile server or an IP lookup service. These approximate IP-country assignments are not evidence of a recipient's nationality, identity or physical location. DB-IP attribution and data provenance are included with the map.
 
-The API requires per-run session token, local peer and accepted Host/Origin. WebSocket authentication occurs in the first frame rather than a logged URL [3]. CA keys are generated per private data directory; trust install is explicit. Upstream certificate verification remains enabled. Windows routing is opt-in with a durable original-settings journal, normal-exit restore and a hidden watchdog for dead-session recovery. Fake-registry tests validate the logic; real Windows recovery acceptance remains necessary.
+The service binds to loopback and requires a per-run session token with accepted Host/Origin. WebSocket authentication uses the sentriflow subprotocol handshake rather than a query parameter [3]. Its first status event contains the dashboard snapshot, followed by queued changes to avoid reconnect races. CA keys are generated per private data directory; trust install is explicit. Upstream certificate verification remains enabled. Windows routing is opt-in with a durable original-settings journal, normal-exit restore and a hidden watchdog for dead-session recovery. Fake-registry tests validate the logic; real Windows recovery acceptance remains necessary.
 
-Local tests cover PII/redaction, Luhn, domain boundaries, rule scope, timeout/parallel holds, persistence/recovery, API/WS access and real HTTP/HTTPS non-delivery/release. A dedicated test confirms positive download counter/rate while the origin deliberately holds the remaining response. Actual Edge UI checks and screenshots are linked below.
+Local tests cover PII/redaction, Luhn, domain boundaries, rule scope, timeout/parallel holds, persistence/recovery, API/WS access and real HTTP/HTTPS non-delivery/release. A dedicated test confirms positive download counter/rate while the origin deliberately holds the remaining response. Historical Edge UI checks and screenshots are linked below. The integrated four-role app also has a reproducible local browser check covering reconnects, remembered rules, settings, streaming and offline rendering; see the current integration status document.
 
 ![Actual local dummy-data Halt](../evidence/halt.png)
 
@@ -101,7 +101,7 @@ Core capture/inspection/Halt/rules/history/dashboard and the offline destination
 | --- | --- |
 | Dashboard and traffic | React/Zustand, real WebSocket events, per-application rates, filters and request detail |
 | Halt and rules | Countdown, queued holds, Allow/Block once/always, rule editing/deletion, visible decision errors |
-| Alerts and score | High-priority PII labels, redaction, severity filter and disclosed block-ratio calculation |
+| Alerts and score | High-priority PII labels, redaction, severity filter and disclosed weighted score calculation |
 | Offline country map | Local MMDB plus bundled vector countries, explicit unknown-IP accounting and accessible country table |
 | Proposal package | Consistent cover, five exported diagram sets, local HTML and A4 PDF working draft |
 
@@ -116,7 +116,7 @@ The remaining plan is acceptance/stabilization first, consented validation and s
 | False positives / prompt fatigue | Bounded inspection, transparent labels, exact-scope rules, participant testing |
 | Unanswered prompt | Short authoritative timeout and default Block |
 | CA or activity metadata exposure | Restricted local directory, redaction, explicit trust removal |
-| Broken system proxy | Durable snapshot, restore/watchdog, external-change checks and emergency command |
+| Broken system proxy | Durable snapshot, ordered shutdown/restore, watchdog and emergency command |
 | Demo/network failure | Offline origin, automated local tests, genuine screenshots; backup recording pending |
 
 ## References

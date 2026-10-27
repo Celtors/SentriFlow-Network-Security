@@ -1,5 +1,7 @@
 # Audric Yusuf Maynard Simatupang — implementation handoff
 
+Current integrated status: [implementation-status.md](implementation-status.md); run/check guide: [integration.md](integration.md). Earlier role-specific evidence below is retained as history.
+
 Updated **27 October 2026 (Asia/Jakarta)**. Assignment source: the supplied
 `SentriFlow_7Day_Tracker.xlsx`, Tasks sheet, primary owner R2. Its named assignments take
 precedence over the different generic R1/R2/R3/R4 allocation in `SentriFlow_Build_Plan.md`.
