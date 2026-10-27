@@ -1,0 +1,51 @@
+{
+  "task": "S41 row 5: system proxy restored after normal exit and forced termination",
+  "measured_at": "2026-10-27",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "code_under_test": "origin/merge b9548be (r1+r2+r3+r4 integrated)",
+  "procedure": [
+    "Independent backup of 5 values under HKCU Internet Settings (ProxyEnable, ProxyServer, ProxyOverride, AutoConfigURL, AutoDetect)",
+    "python -m sentriflow run --system-proxy with an isolated --data-dir and ports 18080/18787",
+    "A: Ctrl+Break (CTRL_BREAK_EVENT) handled by SentriFlow's shutdown handler",
+    "B: TerminateProcess (no cleanup code can run); the detached watchdog must restore",
+    "Compare all 5 values with the backup; poll for state.json removal; check watchdog exit"
+  ],
+  "scope_limits": "Registry only. No CA was installed, no browser was used, no logoff/reboot/power-loss case.",
+  "results": {
+    "baseline": {
+      "ProxyEnable": {
+        "present": true,
+        "value": 0,
+        "type": 4
+      },
+      "ProxyServer": {
+        "present": false
+      },
+      "ProxyOverride": {
+        "present": false
+      },
+      "AutoConfigURL": {
+        "present": false
+      },
+      "AutoDetect": {
+        "present": false
+      }
+    },
+    "normal_exit": {
+      "enabled_state": {
+        "ProxyEnable": 1,
+        "ProxyServer": "127.0.0.1:18080"
+      },
+      "exit_seconds": 0.28,
+      "restored_after_s": 0.0,
+      "state_file_left": false
+    },
+    "forced_kill": {
+      "watchdog_restored_registry_after_s": 0.75,
+      "state_file_removed_after_s": 0.75,
+      "state_file_left_after_15s": false,
+      "watchdog_process_still_running": []
+    },
+    "final_equals_baseline": true
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "task": "S41 row 1: share of flows attributed to a named process in a real browser session",
+  "measured_at": "2026-10-27, 21:29:29 to 21:37:32 local time (8 min 3 s; ended early with the STOP file, planned 10 min)",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "code_under_test": "origin/merge b9548be (r1+r2+r3+r4 integrated)",
+  "procedure": [
+    "python -m sentriflow run --system-proxy, isolated --data-dir, ports 18080/18787",
+    "Temporary CA trusted for the current user only (Windows consent dialog accepted by the user), removed afterwards",
+    "Edge InPrivate, public sites without login, no forms, no downloads",
+    "Counts read from GET /api/flows; no hosts, URLs or paths were stored; the data directory (CA key + history) was deleted"
+  ],
+  "named_rule": "pid is not null and process_name does not start with 'Unknown'",
+  "counts": {
+    "flows_total": 3922,
+    "flows_named": 3871,
+    "attribution_percent": 98.7,
+    "unknown_protected": 0,
+    "unknown_other": 51,
+    "by_process": {
+      "msedge.exe": 3733,
+      "Unknown": 51,
+      "other named processes (5: desktop apps and a system process)": 138
+    },
+    "by_tls_status": {
+      "inspected": 3682,
+      "pinned": 140,
+      "not_inspected": 97,
+      "passthrough": 3
+    },
+    "by_verdict": {
+      "allow": 3304,
+      "block": 618
+    },
+    "by_verdict_source": {
+      "default": 3304,
+      "tls_error": 140,
+      "timeout": 465,
+      "unsupported_protocol": 13
+    }
+  },
+  "msedge_share_percent": 95.18,
+  "other_apps_captured": {
+    "processes": 5,
+    "flows": 138,
+    "note": "Names omitted on purpose: they would reveal which software the tester runs."
+  },
+  "cleanup_verified": {
+    "proxy_restored_after_stop_s": 0.0,
+    "registry_equals_baseline": true,
+    "state_file_left": false,
+    "ca_removal": "FAILED inside the run (sentriflow remove-ca took 30 s and left the certificate); removed manually by thumbprint afterwards and verified with the certificate provider. The CA private key was already deleted with the temp data directory."
+  },
+  "limits": "UDP/QUIC traffic does not go through the proxy; ran 8 min 3 s, not 10; one browser and one afternoon; no halt prompts could be answered (dashboard not built), so every halt timed out into Block."
+}
