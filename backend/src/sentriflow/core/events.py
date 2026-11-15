@@ -22,6 +22,7 @@ EventType = Literal[
     "rules.updated",
     "patterns.updated",
     "settings.updated",
+    "website.updated",
 ]
 
 

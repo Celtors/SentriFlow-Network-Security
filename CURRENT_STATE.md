@@ -1,6 +1,6 @@
 # CURRENT STATE ? reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Milestone: trained and evaluated ML model.
+Updated: 15 November 2026 (Asia/Jakarta). Milestone: live inference and privacy monitoring integrated.
 
 ## Objective and repository
 
@@ -15,7 +15,7 @@ No browser extension. Latest user implementation prompt is the primary spec.
 - Original `SentriFlow-Network-Security` checkout remains on merge; unrelated dirty
   proposal/setup/lockfile changes are untouched. No reset/discard/force push.
 - Confirmed pushed: **12bd8f5** assessment; **93bbcf9** data/feature foundation.
-  Remote reform head was verified after each push. Next commit is model milestone.
+  **51fc4c4** trained/calibrated model. Remote reform head verified after each push.
 
 ## Existing architecture retained
 
@@ -73,21 +73,35 @@ Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
 - Sanity probes: YouTube home and watch path identical 4.9%, Google/GitHub 4.4%;
   these are unlabelled smoke examples, not additional accuracy measurements.
 
-## Integration currently IN PROGRESS, not claimed complete
+## Live backend integration ? COMPLETE; browser/UI verification in progress
 
-Working tree changes for next milestone (outside this model commit):
-- `website/service.py`: bounded live summaries, actual transient request inference,
-  navigation metadata vs background destination distinction, referrer/Origin host
-  association, explicit missing evidence, redacted header presence/HTML forms.
-- `website/observations.py`: bounded identity/gzip/deflate streaming HTML tee,
-  static forms/types/external action host only, original bytes returned unchanged.
-- Runtime/proxy hooks, authenticated /api/websites, /api/websites/{id},
-  /api/model/status, snapshot fields and website.updated events being wired.
-- React WebsitePanel and black/papaya compact-first App, expanded evidence,
-  preserved old pages and popup button being implemented. UI lint/build pass.
-- Next required work: meaningful website/live/proxy/privacy tests, HTML disabled
-  inspection/caps/error coverage, integration fixes, UI state tests, real browser
-  verification including actual live inference and legacy traffic/Halt/regressions.
+- Runtime loads the shipped model once; request-time inference is off the event
+  loop with bounded concurrency. Model failures yield unavailable, not fake scores
+  or disabled enforcement. New inference is advisory; existing rules/Halt still act.
+- `website/service.py`: bounded50 in-memory summaries and1000 request links,
+  navigation metadata vs background destination, referrer/Origin host/process
+  association, redacted browser-header and cookie-presence evidence, transfers,
+  external domains, redirects and unknown browser APIs.
+- `website/observations.py`: bounded128KiB decoded /256KiB wire streaming HTML tee;
+  identity/gzip/deflate, static form/input-type/action hostname only. Original
+  response bytes are returned unchanged. Disabled inspection and unsupported
+  compression/charset stay unavailable. Parser buffers are dropped after finish.
+- Runtime/proxy hooks feed actual requests/responses; snapshot and website.updated
+  events carry inference/evidence. Authenticated GET /api/websites,
+  /api/websites/{id}, /api/model/status reuse existing security middleware.
+- **178 backend passed,3 skipped**, Ruff checks pass, mypy core/inspection pass.
+  Added tests for actual shipped-model/runtime equality, event/snapshot redaction,
+  missing model behavior, navigation/background attribution, bounded history,
+  unchanged streaming and HTML forms, compressed bombs/unsupported/disabled input.
+- Existing verification harness gained optional loopback-only HTTPS website
+  fixtures for real browser testing. Regular regression defaults preserved.
+- Compact-first React UI and expanded evidence implemented, **17 frontend tests**
+  pass, lint/build pass. Real browser checks still running, not yet a verified
+  UI milestone. Initial check found status-text locator mismatch; fixed markup,
+  rebuild/rerun pending.
+- Next: push backend integration; run real Edge checks (`scripts/check-reform.py`,
+  updated `scripts/check-browser.py`), fix failures, document final startup/build/
+  permissions, verify package artifacts and final push.
 
 ## Observability and limitations
 
@@ -111,11 +125,11 @@ flow/rule persistence retained. No automatic blocking solely from model estimate
 - Baseline before implementation: 160 backend passed/3 skipped, 11 frontend passed,
   frontend build passed. Latest integrated regression: 165 passed/3 skipped before
   feature-schema correction (not final validation).
-- Current ML-only tests: **7 passed**, actual shipped artifact included. Ruff
-  ML checks need rerun after formatting fix before this milestone commit.
+- Current ML-only tests: **7 passed**, actual shipped artifact included; Ruff passes.
 - UI TypeScript/build/ESLint pass on in-progress compact/expanded implementation.
-- npm ci reports9 moderate advisories; inspect actual packages and safe fixes before
-  final. No force upgrades. Existing dependency deprecation warnings documented.
+- npm audit:9 moderate **development tooling** advisories traced to minimatch in
+  ESLint/TypeScript-ESLint. No forced downgrade/major dependency replacement done.
+  Runtime-only audit pending; existing dependency deprecation warnings documented.
 - Genuine full application/browser/expanded-detail verification remains pending.
 
 ## Commands

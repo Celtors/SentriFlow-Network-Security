@@ -18,6 +18,7 @@ from sentriflow.api.routes import (
     score,
     settings,
     system,
+    websites,
 )
 from sentriflow.api.security import valid_host, valid_origin, valid_token
 from sentriflow.application import Runtime
@@ -76,6 +77,7 @@ def create_app(runtime: Runtime | None = None, token: str | None = None) -> Fast
         geo,
         settings,
         system,
+        websites,
     ):
         app.include_router(module.router, prefix="/api")
     app.include_router(ws.router)

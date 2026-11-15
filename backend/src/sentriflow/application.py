@@ -24,6 +24,7 @@ from sentriflow.storage.repositories.flows import FlowRepository
 from sentriflow.storage.repositories.patterns import PatternRepository
 from sentriflow.storage.repositories.rules import RuleRepository
 from sentriflow.storage.repositories.settings import SettingsRepository
+from sentriflow.website.service import WebsiteMonitor
 
 EDITABLE_SETTINGS = {
     "inspection_enabled",
@@ -42,6 +43,7 @@ class Runtime:
         self.alerts, self.patterns = AlertRepository(self.db), PatternRepository(self.db)
         self.blocklist, self.settings = BlocklistRepository(self.db), SettingsRepository(self.db)
         self.bus = EventBus()
+        self.websites = WebsiteMonitor(self.bus)
         self.halts = HaltManager(self.bus, self.rules)
         self.resolver = ProcessResolver(self.config.proxy_port)
         self.started = False
@@ -67,6 +69,7 @@ class Runtime:
             }
         )
         await load_bundled(self.blocklist, self.settings, self.config.blocklist_dir)
+        await self.websites.open()
         self.started = True
 
     async def close(self) -> None:
@@ -100,6 +103,7 @@ class Runtime:
             tracker_policy=self.config.tracker_policy,
         )
         flow.verdict = decision.action
+        await self.websites.observe_request(flow, url, headers)
         if any(f.type == "inspection_limit" for f in flow.findings):
             flow.tls_status = "not_inspected"
         flow.verdict_source = decision.source
@@ -119,6 +123,7 @@ class Runtime:
         return decision
 
     async def complete(self, flow: Flow) -> None:
+        self.websites.complete(flow)
         self.active.pop(flow.id, None)
         flow.state = "error" if flow.state == "error" else "completed"
         flow.updated_at, flow.deadline = utc_now(), None
@@ -275,4 +280,5 @@ class Runtime:
             "blocklist": await self.blocklist.status(),
             "system": await self.system_status(),
             "processes": self.processes(),
+            **self.websites.snapshot(),
         }

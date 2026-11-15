@@ -40,7 +40,7 @@ def free_port() -> int:
         return sock.getsockname()[1]
 
 
-def server_certificate(directory: Path) -> tuple[Path, Path]:
+def server_certificate(directory: Path, hosts: tuple[str, ...] = ()) -> tuple[Path, Path]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
     now = datetime.now(UTC)
@@ -55,6 +55,7 @@ def server_certificate(directory: Path) -> tuple[Path, Path]:
         .add_extension(
             x509.SubjectAlternativeName(
                 [x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]
+                + [x509.DNSName(host) for host in hosts]
             ),
             False,
         )
@@ -74,7 +75,7 @@ def server_certificate(directory: Path) -> tuple[Path, Path]:
 
 
 @asynccontextmanager
-async def local_stack(directory: Path):
+async def local_stack(directory: Path, *, website_fixture: bool = False):
     api_port, proxy_port = free_port(), free_port()
     while proxy_port == api_port:
         proxy_port = free_port()
@@ -96,7 +97,19 @@ async def local_stack(directory: Path):
             size = int(headers.get(b"content-length", b"0"))
             await reader.readexactly(size)
             received.append(size)
-            writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+            body = (
+                b'<html><head><link rel="icon" href="data:,"></head><body>'
+                b'<form action="https://collector.example.net/submit?token=PRIVATE-FIXTURE">'
+                b'<input type="password" value="PRIVATE-FIXTURE">'
+                b'<input type="email" value="PRIVATE-FIXTURE"></form></body></html>'
+                if website_fixture
+                else b"OK"
+            )
+            writer.write(
+                b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n"
+                b"Content-Length: " + str(len(body)).encode() + b"\r\nConnection: close\r\n"
+                b"Set-Cookie: fixture=PRIVATE-FIXTURE; Secure; SameSite=Lax\r\n\r\n" + body
+            )
             await writer.drain()
         except (asyncio.IncompleteReadError, ConnectionError, TimeoutError):
             pass
@@ -105,7 +118,12 @@ async def local_stack(directory: Path):
             await writer.wait_closed()
 
     http_server = await asyncio.start_server(upstream, "127.0.0.1", 0)
-    cert, key = server_certificate(directory)
+    fixture_hosts = (
+        "www.example.com",
+        "verify-login-2024.security-confirmation.com",
+        "cdn.example.net",
+    )
+    cert, key = server_certificate(directory, fixture_hosts if website_fixture else ())
     server_ssl = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     server_ssl.load_cert_chain(cert, key)
     https_server = await asyncio.start_server(upstream, "127.0.0.1", 0, ssl=server_ssl)
@@ -120,6 +138,22 @@ async def local_stack(directory: Path):
     await runtime.blocklist.add("localhost", "synthetic loopback tracker")
     prepare_ca(runtime.config.ca_dir)
     master = create_master(runtime)
+    if website_fixture:
+        # Test-only routing keeps these public-shaped names entirely on loopback.
+        # Request URL/host and TLS SNI remain intact for real live inference.
+        class FixtureRouting:
+            def http_connect(self, flow):
+                if flow.request.host in fixture_hosts:
+                    flow.server_conn.address = ("127.0.0.1", https_port)
+
+            def request(self, flow):
+                if flow.request.host in fixture_hosts:
+                    flow.server_conn.address = (
+                        "127.0.0.1",
+                        https_port if flow.request.scheme == "https" else http_port,
+                    )
+
+        master.addons.add(FixtureRouting())
     master.options.update(ssl_verify_upstream_trusted_ca=str(cert))
     api_server = uvicorn.Server(
         uvicorn.Config(

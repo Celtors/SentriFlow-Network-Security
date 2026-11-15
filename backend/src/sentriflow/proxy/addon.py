@@ -12,6 +12,7 @@ from sentriflow.core.models import Finding, Flow, ProcessInfo, Verdict
 from sentriflow.inspection.masking import mask_path
 from sentriflow.proxy.process_resolver import ProcessResolver
 from sentriflow.proxy.tls_status import tls_status
+from sentriflow.website.observations import HtmlObservation
 
 logger = logging.getLogger(__name__)
 Resolver = Callable[[int | None], ProcessInfo | Awaitable[ProcessInfo]]
@@ -64,7 +65,7 @@ class SentriFlowAddon:
                 return
             decision = await self.runtime.inspect(
                 metadata,
-                flow.request.pretty_url,
+                flow.request.url,
                 {k.lower(): v for k, v in flow.request.headers.items()},
                 flow.request.raw_content or b"",
             )
@@ -92,12 +93,19 @@ class SentriFlowAddon:
         if not metadata or metadata.verdict != Verdict.ALLOW or not flow.response:
             return
         metadata.status_code = flow.response.status_code
+        headers = {k.lower(): v for k, v in flow.response.headers.items()}
+        self.runtime.websites.observe_response(metadata, headers)
+        html_observation = HtmlObservation(
+            metadata.host, headers, enabled=self.runtime.config.inspection_enabled
+        )
+        flow.metadata["sentriflow_html"] = html_observation
         if flow.server_conn.peername:
             self.runtime.locate(metadata, flow.server_conn.peername[0])
         flow.metadata["sentriflow_streamed"] = True
 
         def count_chunk(chunk: bytes) -> bytes:
             self.runtime.download_chunk(metadata, len(chunk))
+            html_observation.feed(chunk)
             return chunk
 
         flow.response.stream = count_chunk
@@ -113,6 +121,8 @@ class SentriFlowAddon:
         if not metadata or flow.metadata.get("sentriflow_completed"):
             return
         flow.metadata["sentriflow_completed"] = True
+        if observation := flow.metadata.pop("sentriflow_html", None):
+            self.runtime.websites.observe_html(metadata, observation.finish())
         if flow.response:
             metadata.status_code = flow.response.status_code
         if (
