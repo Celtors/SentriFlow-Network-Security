@@ -4,7 +4,8 @@ Updated: 16 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED,
 
 ## Latest follow-up: excluded-body notes in the UI, 16 November 2026
 
-Status: IMPLEMENTED AND LOCALLY VERIFIED; push pending. The exclusion note was still
+Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED to `origin/reform` in `52f2628`
+(`fix(ui): distinguish binary exclusion notes from Halt reasons`). The exclusion note was still
 rendered as an orange finding in both Halt and Traffic details. The cropped user
 screenshot did not establish which view it came from or its actual hold trigger.
 
