@@ -19,6 +19,9 @@ export default function HaltModal({
     [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const panel = useRef<HTMLDivElement>(null);
+  const findings = flow.findings.filter(
+    (finding) => finding.type !== "inspection_skipped",
+  );
   useEffect(() => {
     panel.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const timer = setInterval(
@@ -87,7 +90,7 @@ export default function HaltModal({
           <strong className="break">{flow.host}</strong>.
         </p>
         <div className="findings">
-          {flow.findings.map((finding, i) => (
+          {findings.map((finding, i) => (
             <div key={i}>
               <strong>{patternLabel(finding.label)}</strong>
               <small>
@@ -95,6 +98,18 @@ export default function HaltModal({
               </small>
             </div>
           ))}
+          {flow.verdict_source === "large_upload" && (
+            <div>
+              <strong>Large upload from an unidentified application</strong>
+              <small>
+                The application could not be identified and this upload exceeds
+                your configured size threshold.
+              </small>
+            </div>
+          )}
+          {!findings.length && flow.verdict_source !== "large_upload" && (
+            <p>The guardian paused this request for review.</p>
+          )}
         </div>
         <p className="muted">
           {remaining

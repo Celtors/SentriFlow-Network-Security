@@ -107,7 +107,12 @@ class Runtime:
         if any(f.type in {"inspection_limit", "inspection_skipped"} for f in flow.findings):
             flow.tls_status = "not_inspected"
         flow.verdict_source = decision.source
-        flow.reason = "; ".join(f.label for f in flow.findings) or decision.source
+        flow.reason = (
+            "Large upload from an unidentified application"
+            if decision.source == "large_upload"
+            else "; ".join(f.label for f in flow.findings if f.type != "inspection_skipped")
+            or decision.source
+        )
         self.active[flow.id] = flow
         self.bus.publish("flow.started", flow.model_dump(mode="json"))
         if decision.action == Verdict.HALT:

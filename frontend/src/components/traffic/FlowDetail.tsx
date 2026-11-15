@@ -10,6 +10,12 @@ export default function FlowDetail({
   close: () => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const findings = flow.findings.filter(
+    (finding) => finding.type !== "inspection_skipped",
+  );
+  const inspectionNotes = flow.findings.filter(
+    (finding) => finding.type === "inspection_skipped",
+  );
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     panel.current?.querySelector<HTMLButtonElement>("button")?.focus();
@@ -67,24 +73,30 @@ export default function FlowDetail({
           <dd>{flow.status_code ?? "Not received"}</dd>
           <dt>Inspection</dt>
           <dd>{patternLabel(flow.tls_status)}</dd>
+          {!!inspectionNotes.length && (
+            <>
+              <dt>Body inspection</dt>
+              <dd>{inspectionNotes.map((note) => note.label).join("; ")}</dd>
+            </>
+          )}
           <dt>Captured at</dt>
           <dd>{time(flow.ts)}</dd>
         </dl>
         <h3>Inspection findings</h3>
-        <div className="findings">
-          {flow.findings.length ? (
-            flow.findings.map((finding, index) => (
+        {findings.length ? (
+          <div className="findings">
+            {findings.map((finding, index) => (
               <div key={index}>
                 <strong>{patternLabel(finding.label)}</strong>
                 <small>
                   {finding.location} · {finding.masked_sample}
                 </small>
               </div>
-            ))
-          ) : (
-            <p className="muted">No pattern findings recorded.</p>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">No pattern findings recorded.</p>
+        )}
         <p className="muted">
           URL paths, queries, headers, and raw request bodies are omitted from
           history. A permitted request can still fail before reaching its

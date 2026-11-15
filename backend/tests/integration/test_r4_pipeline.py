@@ -4,7 +4,7 @@ import socket
 import httpx
 import pytest
 
-from sentriflow.core.models import Rule, Verdict
+from sentriflow.core.models import ProcessInfo, Rule, Verdict
 from sentriflow.proxy.process_resolver import ProcessResolver
 from sentriflow.proxy.runner import create_master
 
@@ -189,6 +189,27 @@ async def test_binary_body_does_not_bypass_saved_block(pipeline, runtime):
     assert response.status_code == 403 and not received
     assert not runtime.halts.pending()
     assert (await runtime.flows.list())[0].verdict_source == "rule"
+
+
+async def test_large_unknown_upload_reports_size_as_its_halt_reason(pipeline, runtime, monkeypatch):
+    client, url, received, _ = pipeline
+
+    async def unknown_process(*args, **kwargs):
+        return ProcessInfo()
+
+    monkeypatch.setattr(runtime.resolver, "resolve", unknown_process)
+    runtime.config.large_upload_bytes = 1
+    request = asyncio.create_task(
+        client.post(url, content=b"\xff", headers={"Content-Type": "application/octet-stream"})
+    )
+    flow_id = await next_pending(runtime)
+    flow = runtime.halts.pending()[0].flow
+    assert flow.verdict_source == "large_upload"
+    assert flow.reason == "Large upload from an unidentified application"
+    assert [finding.type for finding in flow.findings] == ["inspection_skipped"]
+    assert not received
+    await runtime.halts.resolve(flow_id, Verdict.BLOCK)
+    assert (await request).status_code == 403 and not received
 
 
 async def test_inspector_fail_closed(pipeline, runtime, monkeypatch):

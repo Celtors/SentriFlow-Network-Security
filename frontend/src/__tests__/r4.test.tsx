@@ -11,6 +11,7 @@ import TrafficPage from "../pages/TrafficPage";
 import AlertsPage from "../pages/AlertsPage";
 import MapPage from "../pages/MapPage";
 import HaltModal from "../components/halt/HaltModal";
+import FlowDetail from "../components/traffic/FlowDetail";
 import { useTrafficStore } from "../store/trafficStore";
 import { api } from "../api/client";
 import type { Flow, Snapshot } from "../api/types";
@@ -147,4 +148,57 @@ it("keeps a failed decision visible inside the Halt prompt and prevents remember
       "Decision deadline has passed",
     ),
   );
+});
+
+const binaryNote = {
+  type: "inspection_skipped",
+  label: "Binary request body excluded from inspection",
+  location: "body",
+  masked_sample: "[redacted]",
+};
+
+it("shows the actual sensitive finding without presenting excluded binary content as a Halt reason", () => {
+  render(
+    <HaltModal
+      count={1}
+      flow={{
+        ...flow,
+        verdict_source: "inspection",
+        findings: [binaryNote, { ...flow.findings[0], location: "headers" }],
+      }}
+    />,
+  );
+  expect(screen.getByText("email")).toBeTruthy();
+  expect(screen.getByText("headers · [redacted]")).toBeTruthy();
+  expect(screen.queryByText(binaryNote.label)).toBeNull();
+});
+
+it("explains the upload-size trigger when a held request only has a binary exclusion note", () => {
+  render(
+    <HaltModal
+      count={1}
+      flow={{
+        ...flow,
+        verdict_source: "large_upload",
+        pid: null,
+        bytes_up: 1500000,
+        findings: [binaryNote],
+      }}
+    />,
+  );
+  expect(
+    screen.getByText("Large upload from an unidentified application"),
+  ).toBeTruthy();
+  expect(screen.queryByText(binaryNote.label)).toBeNull();
+  expect(screen.getByRole("button", { name: "Block transfer" })).toBeTruthy();
+});
+
+it("keeps the excluded-body note in request metadata without rendering it as a finding", () => {
+  const { container } = render(
+    <FlowDetail flow={{ ...flow, findings: [binaryNote] }} close={vi.fn()} />,
+  );
+  expect(screen.getByText("Body inspection")).toBeTruthy();
+  expect(screen.getByText(binaryNote.label).tagName).toBe("DD");
+  expect(screen.getByText("No pattern findings recorded.")).toBeTruthy();
+  expect(container.querySelector(".findings")).toBeNull();
 });

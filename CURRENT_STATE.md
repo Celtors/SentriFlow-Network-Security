@@ -2,7 +2,30 @@
 
 Updated: 16 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED. Original ML/UI delivery completed 15 November; latest policy follow-up is below.
 
-## Latest follow-up: binary-body Halt exclusion, 16 November 2026
+## Latest follow-up: excluded-body notes in the UI, 16 November 2026
+
+Status: IMPLEMENTED AND LOCALLY VERIFIED; push pending. The exclusion note was still
+rendered as an orange finding in both Halt and Traffic details. The cropped user
+screenshot did not establish which view it came from or its actual hold trigger.
+
+- Halt now omits `inspection_skipped` notes and shows actionable findings. A hold
+  for `large_upload` explicitly explains that an unidentified application exceeds
+  the configured upload threshold, even if its only note is a skipped binary body.
+- Traffic details retain the exclusion note under normal Body inspection metadata,
+  outside the orange findings box. The body is not presented as safe or inspected.
+- Runtime hold reasons exclude informational notes and report the upload-size trigger.
+  The decision policy is unchanged: binary format alone still does not trigger Halt;
+  PII in URL/headers, tracker policies, saved rules and upload-size checks remain active.
+- Validation: 194 backend tests passed, 3 existing manual acceptance cases skipped;
+  21 frontend tests passed. Ruff check/format, strict mypy on core/inspection, ESLint,
+  TypeScript/Vite production build and dashboard packaging passed. Regression tests
+  cover mixed PII/exclusion prompts, actual large-upload reasons and neutral Traffic
+  metadata. No native Google Meet replay, OS proxy changes or CA trust changes.
+- This follow-up changes the frontend. Stop the app, run the dashboard packager
+  (`python -I scripts/build.py`), then restart and refresh the dashboard after pulling.
+  Model retraining and CA changes are unnecessary.
+
+## Earlier follow-up: binary-body Halt exclusion, 16 November 2026
 
 Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED to `origin/reform` in `24f67d5`
 (`fix: exclude binary bodies from automatic Halt prompts`). This section supersedes earlier

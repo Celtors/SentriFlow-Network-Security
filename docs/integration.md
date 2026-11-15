@@ -62,7 +62,11 @@ the excluded-body note and `not_inspected` status without creating a privacy ale
 every binary request. The app does not claim to detect PII inside excluded bodies.
 Malformed or unsupported text payloads retain the existing Halt behavior.
 After updating this backend, stop and restart SentriFlow to clear old pending holds and
-use the new policy. A frontend rebuild or model retraining is not required.
+use the new policy. Excluded-body notes appear as normal Body inspection metadata in
+Traffic details and are omitted from Halt warnings. Halt shows the actionable finding
+or the independent upload-size reason. Build/package the updated UI with
+`python -I scripts/build.py` while the app is stopped, then restart and refresh the page.
+Model retraining is not required.
 
 The same intercepted request now calls `WebsiteMonitor`: navigation metadata identifies an
 observed page, numeric domain features feed the shipped Random Forest in a worker thread,
