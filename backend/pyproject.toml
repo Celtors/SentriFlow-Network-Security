@@ -17,6 +17,7 @@ dependencies = [
   "aiosqlite",
   "geoip2",
   "regex",
+  "tldextract>=5.4,<6",
   "winotify; sys_platform == 'win32'",
 ]
 

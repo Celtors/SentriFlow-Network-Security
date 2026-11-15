@@ -1,6 +1,47 @@
 # CURRENT STATE — reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Milestone: repository synchronization and assessment.
+Updated: 15 November 2026 (Asia/Jakarta). Milestone: real dataset preparation and ML foundation.
+
+## Latest verified progress (takes precedence over historical assessment below)
+
+- Initial checkpoint **12bd8f5** was successfully pushed; remote `refs/heads/reform` verified.
+- Current baseline: **160 backend passed, 3 skipped** (environment-specific checks), **11 frontend
+  passed**, frontend production build passed in this worktree. Dependencies installed in its own
+  `.venv` and `frontend/node_modules`. npm reports 9 moderate dependency advisories; assessment pending.
+- Official UCI archive downloaded to ignored `.runtime/datasets/phiusiil-verified.zip` (15,376,007 B),
+  SHA256 `0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a`.
+- Actual schema: 56 columns including URL/label. Original 134,850 legitimate / 100,945 phishing;
+  **positive class inverted to 1=phishing**. 0 invalid rows, 643 duplicate normalized URLs,
+  0 conflicting URLs, 235,152 retained rows in 197,709 registered-domain groups.
+- Train/selection/calibration/test are domain-disjoint, including private PSL hosting domains:
+  142,836 / 23,070 / 34,022 / 35,224 rows. Overlap asserted zero. Selection is separate from
+  calibration and test. `data_report.json` records counts, columns, definitions and provenance.
+- Shared `ml/features.py`: 24 numeric structural features, same code for train/inference. Lengths
+  (URL/host/path/query), HTTPS scheme, IP literal, subdomains, longest label, TLD length, domain
+  digits/ratio/hyphens/entropy, punycode, path depth, URL dots/hyphens/@/%/=/&/digits, query parameter
+  count, nonstandard port. Credentials/fragments discarded; raw values never estimator inputs.
+- `ml/train.py` fits Random Forest and scaled Logistic Regression, selects on selection AUC,
+  fits isotonic calibration on separate domains, evaluates untouched test including FP/FN and
+  calibration bins, exports data-only JSON. Training is running; **no measured model results yet**.
+- `ml/predictor.py` implements checksum/schema/class/tree checks, float32-compatible tree traversal,
+  isotonic interpolation and local sensitivity explanations. No pickle, network or sklearn at runtime.
+  5 new feature/predictor tests passed; relevant Ruff checks passed. Training verifies export parity.
+- Runtime dependency added: `tldextract>=5.4,<6`, configured with bundled offline suffix snapshot.
+- Live monitoring service is being developed but not wired into Runtime/proxy/UI yet. It is outside
+  the data-foundation commit. No claim of an integrated prediction at this checkpoint.
+- Next: finish real training, inspect held-out metrics and artifact parity, publish model card and
+  artifact; integrate bounded privacy observations, live API/events and compact/expanded interface.
+
+Reproduction from this worktree:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e "backend[dev,browser,ml]"
+.\.venv\Scripts\python.exe -m sentriflow.ml.train --dataset .runtime/datasets/phiusiil-verified.zip --prepare-only
+.\.venv\Scripts\python.exe -m sentriflow.ml.train --dataset .runtime/datasets/phiusiil-verified.zip
+.\.venv\Scripts\python.exe -m pytest backend/tests/unit/test_ml_features.py backend/tests/unit/test_ml_predictor.py -q
+```
+
+## Initial assessment (historical context; superseded by progress above)
 
 ## Objective
 
@@ -17,7 +58,7 @@ browser extension. Commit and push coherent checkpoints to `origin/reform`.
 - `origin/reform` did not exist at initial fetch; this branch was created from updated integration.
 - Original checkout `SentriFlow-Network-Security` remains on `merge` with its uncommitted proposal,
   setup, and lockfile edits intact. Those unrelated changes are not included here.
-- No reset, discarded changes, or force push. First checkpoint push is pending this commit.
+- No reset, discarded changes, or force push. First checkpoint pushed as 12bd8f5.
 
 ## Existing architecture and functionality
 
