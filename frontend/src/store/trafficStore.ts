@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Flow, Rate, Snapshot, SpeedTick } from "../api/types";
+import type { Flow, Rate, Snapshot, SpeedTick, Website } from "../api/types";
 
 interface TrafficState {
   snapshot: Snapshot | null;
@@ -12,6 +12,7 @@ interface TrafficState {
   upsert: (flow: Flow) => void;
   speed: (tick: SpeedTick, ts: string) => void;
   reset: () => void;
+  website: (website: Website, currentId: string | null) => void;
 }
 export const useTrafficStore = create<TrafficState>((set) => ({
   snapshot: null,
@@ -21,6 +22,26 @@ export const useTrafficStore = create<TrafficState>((set) => ({
   setSnapshot: (snapshot) => set({ snapshot }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
+  website: (website, currentId) =>
+    set((state) => {
+      if (!state.snapshot) return {};
+      const websites = [
+        website,
+        ...(state.snapshot.websites ?? []).filter((s) => s.id !== website.id),
+      ];
+      while (websites.length > 50) {
+        let index = websites.length - 1;
+        if (websites[index].id === currentId) index -= 1;
+        websites.splice(index, 1);
+      }
+      return {
+        snapshot: {
+          ...state.snapshot,
+          current_website_id: currentId,
+          websites,
+        },
+      };
+    }),
   upsert: (flow) =>
     set((state) => ({
       snapshot: state.snapshot

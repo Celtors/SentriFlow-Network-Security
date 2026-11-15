@@ -75,9 +75,10 @@ class HtmlObservation:
         self.decoded_bytes = 0
         self.truncated = False
         self.failed = False
+        self.finished = False
 
     def feed(self, chunk: bytes):
-        if not self.available or self.failed or self.truncated:
+        if not self.available or self.failed or self.truncated or self.finished:
             return
         self.wire_bytes += len(chunk)
         if self.wire_bytes > WIRE_LIMIT:
@@ -90,14 +91,24 @@ class HtmlObservation:
                 data = data[:remaining]
             self.decoded_bytes += len(data)
             self.parser.feed(self.decoder.decode(data))
-        except (ValueError, zlib.error):
+        except (ValueError, AssertionError, zlib.error):
             self.failed = True
             self.reason = "HTML sample could not be decoded"
 
     def finish(self) -> dict:
+        self.finished = True
         if not self.available or self.failed:
+            self.parser = None
+            self.unzip = None
             return {"state": "unavailable", "detail": self.reason}
-        self.parser.close()
+        try:
+            self.parser.close()
+        except (ValueError, AssertionError):
+            self.parser = None
+            self.unzip = None
+            return {"state": "unavailable", "detail": "HTML sample could not be parsed"}
+        if self.unzip and not self.unzip.eof:
+            self.truncated = True
         result = {
             "state": "structure_observed",
             "forms": self.parser.forms,

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { api } from "../api/client";
 import { LiveClient } from "../api/ws";
-import type { Flow, Snapshot, SpeedTick } from "../api/types";
+import type { Flow, Snapshot, SpeedTick, Website } from "../api/types";
 import { useTrafficStore } from "../store/trafficStore";
 import { useHaltStore } from "../store/haltStore";
 
@@ -36,7 +36,15 @@ export function useLiveTraffic(token: string) {
       (event) => {
         revision += 1;
         if (event.type === "snapshot") accept(event.data as Snapshot);
-        else if (event.type === "speed.tick")
+        else if (event.type === "website.updated") {
+          const data = event.data as {
+            website: Website;
+            current_website_id: string | null;
+          };
+          useTrafficStore
+            .getState()
+            .website(data.website, data.current_website_id);
+        } else if (event.type === "speed.tick")
           useTrafficStore.getState().speed(event.data as SpeedTick, event.ts);
         else {
           if (

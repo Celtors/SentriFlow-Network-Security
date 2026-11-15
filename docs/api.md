@@ -15,6 +15,9 @@ No CORS permission is granted. Tokens are never accepted in query parameters.
 | --- | --- | --- |
 | GET | `/health` | `{status, proxy_running, system_proxy_enabled, ca_generated, pending_halts}` |
 | GET | `/snapshot` | Latest 200 flows, all pending flows/deadlines, public patterns, rules, alerts, settings, score, session processes and system metadata |
+| GET | `/websites` | `{websites,current_website_id,website_model}`; up to 50 session-only, redacted summaries |
+| GET | `/websites/{id}` | One live website analysis/evidence summary; 404 if evicted or restarted |
+| GET | `/model/status` | Artifact availability, scope, algorithm, calibration, 13 feature names, corpus metrics and attribution; no raw training rows |
 | GET | `/flows` | `Flow[]`; filters `process`, `verdict`, ISO `since`, `limit` (1–1000), `offset` |
 | DELETE | `/flows` | 204; clears history, related alerts and score events; retains rules/patterns |
 | GET | `/processes` | Session process totals and measured `upload_bps`/`download_bps`, including streaming transfers |
@@ -57,6 +60,20 @@ An API decision response confirms the future was resolved; `flow.completed` conf
 
 Public schemas are defined in `backend/src/sentriflow/core/models.py` and mirrored in
 `frontend/src/api/types.ts`. All IDs are strings, timestamps ISO 8601 UTC, byte counts integers.
+
+The snapshot also includes `websites`, `current_website_id`, and `website_model`. Event
+`website.updated` carries `{website,current_website_id}` and uses the existing authenticated
+WebSocket. `website.analysis.state` is `analyzing|ready|unavailable|error`; only `ready` includes
+a numeric `maliciousness_percentage`. It is the calibrated **phishing** class, not a general
+malware probability; see [model documentation](ml-model.md). Risk tiers are low <30%, medium
+30% to <70%, high >=70%. No caller-supplied URL-fetch/scan endpoint is exposed.
+
+Evidence states distinguish `access_attempt`, `transmission_observed`, `collection_observed`
+(response presence), `structure_observed`, `not_observed` and `unavailable`. A forwarded
+request plus upstream response does not confirm the recipient read/stored data. Header/cookie
+values, form values and complete paths/query strings are absent from summaries and ML inputs.
+Website lists are bounded in memory and cleared on restart; flow/rule persistence is unchanged.
+
 Flow fields: `id,ts,updated_at,pid,process_name,process_key,exe_path,method,scheme,host,port,
 path_masked,bytes_up,bytes_down,tls_status,verdict,verdict_source,matched_rule_id,country_code,
 destination_ip,state,reason,deadline,status_code,findings`.

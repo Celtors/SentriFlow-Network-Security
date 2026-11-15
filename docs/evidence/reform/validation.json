@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-11-15T15:03:13.720589+00:00",
+  "branch": "reform",
+  "backend_tests": {
+    "passed": 179,
+    "skipped": 3
+  },
+  "frontend_tests": {
+    "passed": 18
+  },
+  "checks": {
+    "ruff_lint": "passed",
+    "ruff_format": "passed",
+    "mypy_core_inspection": "passed",
+    "eslint": "passed",
+    "typescript_production_build": "passed",
+    "pip_check": "passed",
+    "real_reform_browser": "passed",
+    "legacy_browser": "passed",
+    "isolated_installed_wheel": "passed"
+  },
+  "model": {
+    "id": "phiusiil-domain-v2-0a639fd03aea",
+    "actual_training": "passed",
+    "test_rows": 32289,
+    "domain_group_overlap": 0,
+    "export_max_absolute_error": 3.061439990403869e-14,
+    "precision": 0.9834239372604937,
+    "recall": 0.9088288585076594,
+    "f1": 0.9446560801266961,
+    "false_positive_rate": 0.009232143743485383,
+    "false_negative_rate": 0.09117114149234064,
+    "brier": 0.03509953326892654
+  },
+  "npm_audit": {
+    "runtime_vulnerabilities": 0,
+    "development_moderate_advisories": 9,
+    "source": "minimatch in ESLint/TypeScript-ESLint"
+  },
+  "evidence": {
+    "reform": "browser-report.json",
+    "legacy": "legacy/local-demo-report.json",
+    "package": "package-report.json",
+    "performance": "performance-report.json"
+  },
+  "limits": [
+    "Internal PhiUSIIL corpus evaluation, no independent temporal/production benchmark",
+    "Loopback HTTPS browser fixtures, no native Windows routing/CA acceptance",
+    "No focused-tab/browser-JS permission/storage/fingerprinting telemetry",
+    "Warm CPU microbenchmark, no long-running load test"
+  ]
+}

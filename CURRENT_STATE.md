@@ -1,6 +1,6 @@
 # CURRENT STATE ? reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Milestone: live inference and privacy monitoring integrated.
+Updated: 15 November 2026 (Asia/Jakarta). Milestone: end-to-end implementation, full validation and packaging passed; UI delivery checkpoint.
 
 ## Objective and repository
 
@@ -15,7 +15,8 @@ No browser extension. Latest user implementation prompt is the primary spec.
 - Original `SentriFlow-Network-Security` checkout remains on merge; unrelated dirty
   proposal/setup/lockfile changes are untouched. No reset/discard/force push.
 - Confirmed pushed: **12bd8f5** assessment; **93bbcf9** data/feature foundation.
-  **51fc4c4** trained/calibrated model. Remote reform head verified after each push.
+  **51fc4c4** trained/calibrated model; **bf6158a** live inference/privacy integration.
+  Remote reform head verified after each push. Current UI milestone commit pending.
 
 ## Existing architecture retained
 
@@ -73,35 +74,50 @@ Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
 - Sanity probes: YouTube home and watch path identical 4.9%, Google/GitHub 4.4%;
   these are unlabelled smoke examples, not additional accuracy measurements.
 
-## Live backend integration ? COMPLETE; browser/UI verification in progress
+## Live integration and frontend ? COMPLETE and browser verified
 
-- Runtime loads the shipped model once; request-time inference is off the event
-  loop with bounded concurrency. Model failures yield unavailable, not fake scores
-  or disabled enforcement. New inference is advisory; existing rules/Halt still act.
-- `website/service.py`: bounded50 in-memory summaries and1000 request links,
-  navigation metadata vs background destination, referrer/Origin host/process
-  association, redacted browser-header and cookie-presence evidence, transfers,
-  external domains, redirects and unknown browser APIs.
-- `website/observations.py`: bounded128KiB decoded /256KiB wire streaming HTML tee;
-  identity/gzip/deflate, static form/input-type/action hostname only. Original
-  response bytes are returned unchanged. Disabled inspection and unsupported
-  compression/charset stay unavailable. Parser buffers are dropped after finish.
-- Runtime/proxy hooks feed actual requests/responses; snapshot and website.updated
-  events carry inference/evidence. Authenticated GET /api/websites,
-  /api/websites/{id}, /api/model/status reuse existing security middleware.
-- **178 backend passed,3 skipped**, Ruff checks pass, mypy core/inspection pass.
-  Added tests for actual shipped-model/runtime equality, event/snapshot redaction,
-  missing model behavior, navigation/background attribution, bounded history,
-  unchanged streaming and HTML forms, compressed bombs/unsupported/disabled input.
-- Existing verification harness gained optional loopback-only HTTPS website
-  fixtures for real browser testing. Regular regression defaults preserved.
-- Compact-first React UI and expanded evidence implemented, **17 frontend tests**
-  pass, lint/build pass. Real browser checks still running, not yet a verified
-  UI milestone. Initial check found status-text locator mismatch; fixed markup,
-  rebuild/rerun pending.
-- Next: push backend integration; run real Edge checks (`scripts/check-reform.py`,
-  updated `scripts/check-browser.py`), fix failures, document final startup/build/
-  permissions, verify package artifacts and final push.
+- Runtime loads the shipped model once; off-loop inference with bounded concurrency.
+  Only canonical scheme/hostname/port reaches model.analyze: query/path/userinfo
+  never cross that boundary. Model failures report unavailable, enforcement stays on.
+- `website/service.py`: 50 bounded memory-only summaries /1000 request links.
+  Sec-Fetch document/navigation identifies latest observed page, background traffic
+  does not replace it. Referrer/Origin host/process associates related requests.
+- Browser/device header and cookie PRESENCE only: attempt before forwarding,
+  transmission observed after upstream response; recipient read/storage unconfirmed.
+  Cookie response presence, external domains, redirects and payload counts included.
+- `website/observations.py`: unchanged response byte tee,128KiB decoded/256KiB wire
+  bound, identity/gzip/deflate. Static form/input types/action hostnames, no values.
+  Honors inspection toggle, unsupported encodings/charset/parse failures unavailable,
+  partial samples disclosed. Parser buffers discarded at completion. Arbitrary HTML
+  parser errors must not interrupt the actual transfer (new regression test).
+- Runtime/proxy hooks, authenticated GET /api/websites, /api/websites/{id},
+  /api/model/status, initial snapshot and website.updated events integrated.
+- `frontend/src/components/WebsitePanel.tsx`, `website.css`, App/store/hook changes:
+  black/papaya compact-first card, actual percentage, risk tier, local sensitivity
+  reasons, recommendation, clear loading/missing/error/stale states. Expanded
+  Website tab has history selector, privacy evidence, destinations, model details.
+  Other dashboard tabs and global Halt decisions preserved. No extension.
+- Small separate browser window via top-right arrow; OS controls always-on-top.
+  Compact choice persists only per browser session. Followed page survives bounded
+  background-history eviction; selecting an evicted entry falls back to current.
+- **scripts/check-reform.py passed in real Edge**, using loopback-only HTTPS origins
+  with public-shaped names and the actual shipped model (4.9% /100% test outputs,
+  not hardcoded). Checks compact/default, actual HTTPS navigation, WS updates,
+  static forms, explicit unavailable browser APIs, redaction, model details,
+  expanded layout, mobile390px, authenticated popup and reload synchronization.
+  Browser errors empty. Screenshots visually reviewed.
+- **scripts/check-browser.py passed**: real CLI startup, compact-to-expanded flow,
+  Halt once/remember/reload, Allow/Block, rules CRUD and cross-client sync, settings,
+  bytes/rates before transfer completion, request details, alerts and offline map.
+  4/4 synthetic PII samples detected; max click-to-response37.7ms (small local sample).
+  No external browser requests or JS errors. No OS routing/CA trust changed.
+- Evidence: **docs/evidence/reform/** (browser/performance reports + screenshots);
+  legacy regression report/screenshots under **reform/legacy/**. Test fixture routing
+  in verification.py is opt-in only; real application has no public-host remapping.
+- Warm local inference including explanations,150 samples: median2.920ms/p954.248ms,
+  model load100.117ms. Microbenchmark only, not representative long-running load.
+- CI workflow triggers now include reform. Runtime lock adds tldextract5.4.0 and
+  requests-file3.0.1. Build packager validates its deletion target before replacing UI.
 
 ## Observability and limitations
 
@@ -120,17 +136,27 @@ No production labels/external or temporal validation, prior correction or guaran
 Summaries planned memory-only bounded50, restart clears them; existing redacted
 flow/rule persistence retained. No automatic blocking solely from model estimate.
 
-## Validation so far
+## Validation
 
-- Baseline before implementation: 160 backend passed/3 skipped, 11 frontend passed,
-  frontend build passed. Latest integrated regression: 165 passed/3 skipped before
-  feature-schema correction (not final validation).
-- Current ML-only tests: **7 passed**, actual shipped artifact included; Ruff passes.
-- UI TypeScript/build/ESLint pass on in-progress compact/expanded implementation.
-- npm audit:9 moderate **development tooling** advisories traced to minimatch in
-  ESLint/TypeScript-ESLint. No forced downgrade/major dependency replacement done.
-  Runtime-only audit pending; existing dependency deprecation warnings documented.
-- Genuine full application/browser/expanded-detail verification remains pending.
+- Full scripts/test.ps1 gate passed: **179 backend tests passed,3 skipped**, Ruff
+  lint/format, mypy core/inspection, ESLint, frontend tests and production build.
+  New origin-boundary regression subsequently passed targeted6 integration tests.
+  Latest full-gate rerun also passed: **179 backend passed /3 skipped,18 frontend
+  passed**, Ruff lint/format, mypy, ESLint and production build. The current-page
+  history cap and origin-only model boundary regressions are included.
+- Actual sklearn training and all32,289-row exported inference parity passed.
+  Shipped model loads without training; corruption/schema/positive-class tested.
+- Real reform browser and legacy browser checks both passed (details above).
+- pip check: no broken requirements. npm runtime-only audit **0 vulnerabilities**.
+  Full npm audit:9 moderate development-tool advisories via minimatch/ESLint/
+  TypeScript-ESLint. No forced downgrade/major replacement. Dependency deprecation
+  warnings remain (pytest-asyncio scope, Starlette/httpx, ldap3/pyasn1).
+- Local wheel build passed. Package includes trained model/checksum/reports/
+  attribution and compiled UI, with no dataset/database. Isolated --target install
+  imported the wheel package (not editable source); actual inference, application
+  startup, authenticated model status, rejected missing token and dashboard serving
+  passed without retraining. See package-report.json. A mistyped initial package
+  name produced an unrelated ignored wheel, never installed or part of delivery.
 
 ## Commands
 
@@ -152,11 +178,20 @@ train: artifact is included by setuptools package data `data/**/*`.
 Added runtime dependency tldextract>=5.4,<6; sklearn remains training-only extra.
 Do not use original checkout editable environment, private browsing data or secrets.
 
-## Precise next checkpoint
+## Completed / remaining / next actions
 
-Push trained artifact/model card/schema2 fixes with this state. Then finish live
-monitoring tests and integration; commit/push. Finish compact UI tests and real
-browser smoke; commit/push. Run full gate and privacy/security/startup/export/
-package checks, fix issues, update README/integration/current state and push final.
-Record exact successful commits, test outcomes and any real blocker. No blocker
-currently prevents local implementation or pushing to origin/reform.
+Completed: safe synchronization, recoverable pushed checkpoints, licensed public
+corpus inspection, leakage-controlled preparation, real model comparison/training/
+calibration/evaluation/export, shipped artifact, live inference/privacy hooks,
+authenticated API/WS integration, compact/expanded UI, real Edge checks, legacy
+regression, full static/test/build gate and installed-wheel verification.
+
+Remaining for this checkpoint: commit and push the validated UI/documentation/
+evidence changes, verify remote equality, then record the successful commit in
+this file and push the final handoff. There is no known failing implementation
+check or external push blocker. Original dirty checkout remains untouched.
+
+Limits deliberately not claimed complete: native Windows system-wide routing/CA
+acceptance, production traffic accuracy, external/temporal datasets, focused-tab/
+browser-API telemetry, long-running participant trials and OS always-on-top control.
+These are explicitly disclosed product/evaluation limits, not fabricated features.

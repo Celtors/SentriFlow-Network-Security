@@ -1,5 +1,10 @@
 # R1–R4 integrated application
 
+`reform` extends this integration with a shipped calibrated domain-risk model, live website
+summaries and a compact default UI. The latest task/status is [CURRENT_STATE.md](../CURRENT_STATE.md);
+the original role allocation is historical. [Model documentation](ml-model.md) records the
+actual dataset, license, feature schema, evaluation and calibration limits.
+
 The merged role implementations now share `application.Runtime`, Pydantic contracts, SQLite
 repositories and one API/proxy event loop. `runtime.py` and `launcher.py` are compatibility
 imports, not parallel applications. Ports and module boundaries follow the existing build plan.
@@ -50,6 +55,19 @@ A risk enters its own Halt future. A user decision, timeout, capacity limit or s
 it; silence never forwards the payload. Allowed response chunks update rates before completion.
 Masked metadata, alerts and the disclosed score reach the same dashboard state.
 
+The same intercepted request now calls `WebsiteMonitor`: navigation metadata identifies an
+observed page, numeric domain features feed the shipped Random Forest in a worker thread,
+and `website.updated` updates the compact card. Background traffic does not replace a known
+page. Referrer/Origin host and process associate related destinations, with same-host-tab
+ambiguity disclosed. A bounded response tee extracts static form types/action hostnames
+without changing forwarded bytes or retaining body/value strings. It respects the inspection
+toggle; unsupported encodings and absent payloads are unavailable. It never injects browser
+scripts or claims to observe JS permission/storage/fingerprinting calls.
+
+The model is advisory: existing Halt/rules/tracker policies remain the enforcement authority.
+Missing/corrupt model artifacts disable only the estimate. Session website state is bounded
+in memory; it does not add a new database containing URLs or browser secrets.
+
 The first authenticated WebSocket status contains a snapshot produced after subscribing to
 the event bus, then queued changes follow. Reloading/reconnecting restores pending holds.
 Rule/pattern/settings changes notify other connected clients. Late snapshots and events from
@@ -64,8 +82,10 @@ the watchdog/recovery snapshot; real Windows acceptance remains separate.
 
 ## Verify the integration
 
-The current [validation record](evidence/integration/validation.json) records 163 passing
+The earlier [validation record](evidence/integration/validation.json) records 163 passing
 backend tests, 11 passing frontend tests, all static/build checks, and the real browser run.
+For current reform results see [CURRENT_STATE.md](../CURRENT_STATE.md) and
+`docs/evidence/reform/`. Do not interpret the older record as validation of the new model/UI.
 
 Run `scripts/test.ps1` on Windows. Equivalent portable gates:
 

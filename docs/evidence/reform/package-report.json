@@ -1,0 +1,19 @@
+{
+  "wheel": "sentriflow-0.1.0-py3-none-any.whl",
+  "bytes": 1070644,
+  "sha256": "8861388a711c169074c815f406d4f124045ebe1a162246c847763147bd2ee38d",
+  "model_hash_verified": true,
+  "required_assets_present": [
+    "sentriflow/data/models/website-risk.json",
+    "sentriflow/data/models/website-risk.sha256",
+    "sentriflow/data/models/training_report.json",
+    "sentriflow/data/models/ATTRIBUTION.md",
+    "sentriflow/web/index.html"
+  ],
+  "raw_dataset_or_database_included": false,
+  "isolated_wheel_import": true,
+  "installed_model_inference": true,
+  "installed_app_startup": true,
+  "packaged_dashboard_served": true,
+  "authentication_checked": true
+}

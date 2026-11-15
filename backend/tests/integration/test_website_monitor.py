@@ -11,11 +11,19 @@ from sentriflow.website.service import MAX_SITES, WebsiteMonitor
 NAVIGATION = {"sec-fetch-dest": "document", "sec-fetch-mode": "navigate"}
 
 
-async def test_live_runtime_inference_events_and_no_sensitive_values(runtime):
+async def test_live_runtime_inference_events_and_no_sensitive_values(runtime, monkeypatch):
     await runtime.open()
     try:
         flow = Flow(host="youtube.com", scheme="https", method="GET")
         url = "https://youtube.com/watch?token=ZZ-private-value"
+        actual_analyze = runtime.websites.model.analyze
+        received_origins = []
+
+        def capture_origin(origin):
+            received_origins.append(origin)
+            return actual_analyze(origin)
+
+        monkeypatch.setattr(runtime.websites.model, "analyze", capture_origin)
         async with runtime.bus.subscribe() as events:
             decision = await runtime.inspect(
                 flow,
@@ -29,6 +37,7 @@ async def test_live_runtime_inference_events_and_no_sensitive_values(runtime):
                 messages.append((await events.get()).model_dump(mode="json"))
         site = runtime.websites.snapshot()["websites"][0]
         assert site["analysis"] == Predictor().analyze(url)
+        assert received_origins == ["https://youtube.com"]
         assert site["identified_by"] == "page_navigation"
         assert site["evidence"]["cookies"]["state"] == "access_attempt"
         assert any(m["type"] == "website.updated" for m in messages)

@@ -115,6 +115,9 @@ async def main():
                     "button", name="Open dashboard", exact=True
                 ).click()
                 await page.get_by_text("Guardian connected", exact=True).wait_for()
+                await page.get_by_role(
+                    "button", name="Explore details", exact=False
+                ).click()
                 latencies, click_latencies, detection = [], [], []
 
                 async def decide_in_browser(dialog, action, request):
@@ -347,6 +350,7 @@ async def main():
                 "timing_method": "roundtrip includes Playwright action waiting; click timing starts at captured DOM click and ends after proxy response plus a browser evaluation roundtrip",
                 "download_observed_before_completion": True,
                 "ui_checks": [
+                    "compact_first_then_expand",
                     "halt_once",
                     "remember",
                     "edit_rule",

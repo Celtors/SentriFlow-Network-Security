@@ -86,6 +86,9 @@ export interface SystemStatus {
   };
 }
 export interface Snapshot {
+  websites?: Website[];
+  current_website_id?: string | null;
+  website_model?: ModelStatus;
   flows: Flow[];
   pending: Flow[];
   rules: Rule[];
@@ -103,6 +106,76 @@ export interface Snapshot {
   blocklist: { source: string; count: number }[];
   system: SystemStatus;
   processes: ProcessStats[];
+}
+
+export interface WebsiteAnalysis {
+  state: "analyzing" | "ready" | "unavailable" | "error";
+  maliciousness_percentage: number | null;
+  risk_level: "low" | "medium" | "high" | "unknown";
+  reasons: string[];
+  reason?: string;
+  model_id?: string;
+  scope?: string;
+  caution?: string;
+  calibration?: string;
+  explanation_method?: string;
+  features?: Record<string, number>;
+  contributions?: {
+    feature: string;
+    label: string;
+    value: number;
+    delta_percentage_points: number;
+  }[];
+}
+export interface WebsiteEvidence {
+  state:
+    | "not_observed"
+    | "access_attempt"
+    | "transmission_observed"
+    | "collection_observed"
+    | "structure_observed"
+    | "unavailable";
+  detail: string;
+  forms?: number;
+  password_fields?: number;
+  email_fields?: number;
+  external_form_domains?: string[];
+  partial?: boolean;
+}
+export interface Website {
+  id: string;
+  host: string;
+  scheme: string;
+  process_name: string;
+  process_key: string | null;
+  identified_by:
+    "page_navigation" | "observed_destination" | "encrypted_destination";
+  first_seen: string;
+  updated_at: string;
+  analysis: WebsiteAnalysis;
+  evidence: Record<string, WebsiteEvidence>;
+  requests: number;
+  completed_requests: number;
+  blocked_requests: number;
+  third_party_requests: number;
+  external_domains: string[];
+  redirect_domains: string[];
+  redirects: number;
+  tls_status: string;
+  bytes_up: number;
+  bytes_down: number;
+  association_note: string;
+}
+export interface ModelStatus {
+  available: boolean;
+  reason?: string;
+  model_id?: string;
+  algorithm?: string;
+  scope?: string;
+  calibration?: string;
+  features?: string[];
+  metrics?: Record<string, unknown>;
+  dataset?: { source: string; license: string; authors: string[] };
 }
 export interface SpeedTick {
   upload_bps: number;

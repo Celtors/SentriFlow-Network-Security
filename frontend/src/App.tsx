@@ -12,9 +12,12 @@ import SettingsPage from "./pages/SettingsPage";
 import BlocklistPage from "./pages/BlocklistPage";
 import MapPage from "./pages/MapPage";
 import HaltModal from "./components/halt/HaltModal";
+import WebsitePanel from "./components/WebsitePanel";
 import "./App.css";
+import "./website.css";
 
 const tabs = [
+  "Website",
   "Overview",
   "Traffic",
   "Rules",
@@ -27,10 +30,39 @@ type Tab = (typeof tabs)[number];
 export default function App() {
   const [token, setToken] = useState(sessionToken),
     [draft, setDraft] = useState(""),
-    [tab, setTab] = useState<Tab>("Overview");
+    [tab, setTab] = useState<Tab>("Website"),
+    [expanded, setExpanded] = useState(
+      () => sessionStorage.getItem("sentriflow-expanded") === "1",
+    );
   const { snapshot, status, error } = useTrafficStore();
   const pending = useHaltQueue();
   useLiveTraffic(token);
+  function expand(nextTab: Tab = "Website") {
+    sessionStorage.setItem("sentriflow-expanded", "1");
+    setExpanded(true);
+    setTab(nextTab);
+  }
+  function compact() {
+    sessionStorage.removeItem("sentriflow-expanded");
+    setExpanded(false);
+  }
+  function popout() {
+    const url = new URL(location.href);
+    url.hash = new URLSearchParams({ token }).toString();
+    sessionStorage.removeItem("sentriflow-expanded");
+    const popup = window.open(
+      url,
+      "sentriflow-companion",
+      "popup,width=460,height=780",
+    );
+    if (popup) popup.opener = null;
+    else
+      useTrafficStore
+        .getState()
+        .setError(
+          "Allow pop-ups for this local dashboard to open a small window.",
+        );
+  }
   function logout() {
     sessionStorage.removeItem("sentriflow-token");
     setToken("");
@@ -79,6 +111,7 @@ export default function App() {
       </main>
     );
   const pages: Record<Tab, React.ReactNode> = {
+    Website: <WebsitePanel onSettings={() => setTab("Settings")} />,
     Overview: <DashboardPage />,
     Traffic: <TrafficPage />,
     Rules: <RulesPage />,
@@ -90,6 +123,73 @@ export default function App() {
   const routed =
     snapshot?.system.system_proxy.enabled &&
     snapshot.system.system_proxy.server === snapshot.system.proxy_address;
+  if (!expanded)
+    return (
+      <main className="companion-stage">
+        <div className="companion-shell">
+          <div className="companion-brand">
+            <span className="brand">
+              <span className="brand-mark">S</span>SentriFlow
+            </span>
+            <button
+              className="quiet-button"
+              onClick={popout}
+              aria-label="Open small window"
+            >
+              ↗
+            </button>
+          </div>
+          <div className="companion-status">
+            <span className="dot" />{" "}
+            <span>{status === "Live" ? "Guardian connected" : status}</span>
+            <span>ON THIS DEVICE</span>
+          </div>
+          {error && (
+            <div role="alert" className="warning">
+              {error}
+              <button onClick={() => useTrafficStore.getState().setError("")}>
+                Dismiss
+              </button>
+            </div>
+          )}
+          {status !== "Live" && (
+            <div className="warning">
+              Live connection unavailable. Previous estimates may be stale.
+              <button onClick={logout}>Reconnect</button>
+            </div>
+          )}
+          {snapshot && !routed && (
+            <div className="compact-routing">
+              Only configured apps are visible.
+              <button
+                className="text-button"
+                onClick={() => expand("Settings")}
+              >
+                Review capture settings
+              </button>
+            </div>
+          )}
+          <WebsitePanel
+            compact
+            onExpand={() => expand()}
+            onSettings={() => expand("Settings")}
+          />
+          <div className="companion-footer">
+            <span>Local analysis. No extension.</span>
+            <button className="text-button" onClick={logout}>
+              Disconnect
+            </button>
+          </div>
+        </div>
+        {pending[0] && status === "Live" && (
+          <HaltModal
+            key={pending[0].id}
+            flow={pending[0]}
+            count={pending.length}
+          />
+        )}
+      </main>
+    );
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -98,7 +198,7 @@ export default function App() {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setTab("Overview");
+            setTab("Website");
           }}
         >
           <span className="brand-mark">S</span>SentriFlow<small>MVP</small>
@@ -112,7 +212,7 @@ export default function App() {
               onClick={() => setTab(name)}
             >
               <span aria-hidden="true">
-                {["O", "~", "=", "!", "#", "@", "*"][i]}
+                {["↗", "O", "~", "=", "!", "#", "@", "*"][i]}
               </span>
               {name}
             </button>
@@ -128,6 +228,7 @@ export default function App() {
         <button className="text-button" onClick={logout}>
           Disconnect session
         </button>
+        <button onClick={compact}>Compact view</button>
       </aside>
       <div className="workspace">
         <header>

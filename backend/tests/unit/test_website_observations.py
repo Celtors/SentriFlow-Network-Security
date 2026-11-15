@@ -65,3 +65,15 @@ def test_base_and_formaction_domains():
         "other.example.net",
         "override.example.org",
     ]
+
+
+def test_malformed_html_does_not_interrupt_forwarding(monkeypatch):
+    observation = HtmlObservation("example.com", {"content-type": "text/html"})
+
+    def reject(_):
+        raise AssertionError("Parser failed on malformed declaration")
+
+    monkeypatch.setattr(observation.parser, "feed", reject)
+    observation.feed(b"<![unsupported]><form>")
+    assert observation.finish()["state"] == "unavailable"
+    assert observation.parser is None

@@ -17,11 +17,8 @@ from sentriflow.ml.features import (
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "data" / "models" / "website-risk.json"
 LABELS = {
-    "url_length": "Address length",
     "host_length": "Domain length",
     "host_dots": "Dots in domain",
-    "path_length": "Page path length",
-    "query_length": "Query length",
     "https_scheme": "HTTPS in the observed address",
     "host_is_ip": "IP address as domain",
     "subdomain_count": "Number of subdomains",
@@ -32,15 +29,6 @@ LABELS = {
     "host_hyphens": "Hyphens in domain",
     "host_entropy": "Domain character variation",
     "punycode": "Internationalized domain encoding",
-    "path_depth": "Page path depth",
-    "url_dots": "Dots in address",
-    "url_hyphens": "Hyphens in address",
-    "url_at": "At signs in address",
-    "url_percent": "Percent encodings",
-    "url_equals": "Equals signs in address",
-    "url_ampersands": "Parameter separators",
-    "url_digits": "Digits in address",
-    "query_parameters": "Number of query parameters",
     "nonstandard_port": "Nonstandard port",
 }
 

@@ -1,0 +1,437 @@
+.companion-stage {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    #301c0b 0,
+    #0d0c0a 40%,
+    #080808 75%
+  );
+}
+.companion-shell {
+  width: min(100%, 460px);
+  border: 1px solid #3b3024;
+  border-radius: 24px;
+  background: #0e0e0e;
+  padding: 24px;
+  box-shadow: 0 28px 100px #0009;
+}
+.companion-brand,
+.companion-status,
+.companion-footer,
+.risk-topline,
+.website-address,
+.website-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.companion-brand .brand {
+  font-size: 21px;
+}
+.quiet-button {
+  background: transparent;
+  font-size: 20px;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+.companion-status {
+  justify-content: flex-start;
+  font-size: 11px;
+  margin: 25px 0 15px;
+  color: #d2c5b7;
+}
+.companion-status > span:last-child {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+.compact-routing {
+  font-size: 11px;
+  color: var(--muted);
+  border-block: 1px solid var(--border);
+  padding: 10px 0;
+  margin-bottom: 16px;
+}
+.compact-routing .text-button {
+  display: block;
+  padding: 5px 0 0;
+}
+.website-view {
+  max-width: 1160px;
+  margin: auto;
+}
+.website-risk-card {
+  background: linear-gradient(145deg, #20180f, #141414 50%);
+  border: 1px solid #574027;
+  border-radius: 18px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.compact-website .website-risk-card {
+  padding: 20px;
+}
+.risk-topline .eyebrow {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+}
+.risk-badge {
+  text-transform: capitalize;
+  border: 1px solid #6b4927;
+  background: #38230e;
+  color: #ffb46d;
+  padding: 5px 9px;
+  border-radius: 100px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.risk-badge.low {
+  color: #eee1d0;
+  background: #29251f;
+  border-color: #61594d;
+}
+.risk-badge.high {
+  background: var(--accent);
+  color: #0a0805;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.risk-badge.unknown {
+  background: #1c1c1c;
+  color: #aaa;
+  border-color: #444;
+}
+.website-address {
+  justify-content: flex-start;
+  margin: 29px 0 24px;
+}
+.website-address h2 {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  line-height: 1.3;
+  margin-top: 4px;
+}
+.compact-website .website-address h2 {
+  font-size: 21px;
+}
+.site-symbol {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 44px;
+  color: var(--accent);
+  border: 1px solid #66411a;
+  border-radius: 12px;
+  font-size: 27px;
+  background: #2a1c0e;
+}
+.risk-reading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.risk-reading > strong {
+  font-size: 70px;
+  letter-spacing: -4px;
+  line-height: 1.05;
+  font-weight: 550;
+  color: var(--accent);
+}
+.risk-reading > strong > span {
+  font-size: 26px;
+  letter-spacing: -1px;
+  padding-left: 3px;
+}
+.risk-reading b {
+  font-size: 13px;
+  font-weight: 500;
+  display: block;
+}
+.risk-reading small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 10px;
+}
+.compact-website .risk-reading {
+  gap: 14px;
+}
+.compact-website .risk-reading > strong {
+  font-size: 64px;
+}
+.risk-meter {
+  height: 5px;
+  border-radius: 5px;
+  background: #383028;
+  margin: 24px 0 20px;
+  overflow: hidden;
+}
+.risk-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+.risk-low .risk-meter > span {
+  background: #d6c1a8;
+}
+.risk-recommendation {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 20px 0 12px;
+}
+.risk-reasons {
+  padding-left: 17px;
+  color: #c7b8a9;
+  font-size: 12px;
+  line-height: 1.6;
+  display: grid;
+  gap: 6px;
+}
+.risk-reasons li::marker {
+  color: var(--accent);
+}
+.risk-caveat {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 17px 0 12px;
+}
+.risk-empty {
+  font-size: 12px;
+  margin: 14px 0;
+}
+.expand-risk {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 22px;
+  padding: 13px 16px;
+}
+.companion-footer {
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.companion-footer .text-button {
+  font-size: 10px;
+  padding: 4px 0;
+}
+.website-start {
+  margin-top: 18px;
+  font-size: 12px;
+  padding: 15px 0;
+}
+.website-start p {
+  margin: 7px 0 13px;
+}
+.website-tools {
+  margin-bottom: 20px;
+  align-items: end;
+  font-size: 11px;
+}
+.website-tools label {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 440px);
+}
+.website-tools select {
+  font-size: 12px;
+}
+.website-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 22px 0 36px;
+  gap: 12px;
+}
+.website-stats > div {
+  border: 1px solid var(--border);
+  background: #131313;
+  border-radius: 12px;
+  padding: 20px;
+}
+.website-stats strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 7px;
+}
+.website-stats span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.website-section {
+  margin: 24px 0;
+}
+.section-intro h2 {
+  font-size: 22px;
+  margin: 8px 0;
+}
+.section-intro p {
+  font-size: 12px;
+  max-width: 650px;
+}
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.evidence-card {
+  padding: 23px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #131313;
+}
+.evidence-card > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.evidence-card h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
+}
+.evidence-state {
+  font-size: 9px;
+  border-radius: 5px;
+  padding: 3px 6px;
+  border: 1px solid #45403b;
+  color: #afa9a2;
+  white-space: nowrap;
+}
+.state-transmission_observed,
+.state-access_attempt,
+.state-structure_observed,
+.state-collection_observed {
+  border-color: #72512e;
+  color: #ffbd80;
+  background: #24190e;
+}
+.evidence-card p {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.form-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 18px;
+}
+.form-facts dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+.form-facts dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 21px;
+}
+.destinations,
+.model-details {
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #111;
+  font-size: 12px;
+}
+.destinations p,
+.model-details p {
+  margin-top: 12px;
+}
+.destinations ul {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  gap: 10px;
+}
+.destinations li {
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: #242019;
+  color: #e7be95;
+}
+.model-details summary {
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 30px;
+  margin: 20px 0;
+}
+.feature-list > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  gap: 12px;
+  border-bottom: 1px solid #292929;
+}
+.feature-list dt {
+  color: var(--muted);
+  text-transform: capitalize;
+}
+.feature-list dd {
+  margin: 0;
+}
+.association-note {
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 18px 0;
+}
+@media (max-width: 850px) {
+  .website-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .evidence-grid {
+    grid-template-columns: 1fr;
+  }
+  .website-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+@media (max-width: 500px) {
+  .companion-stage {
+    padding: 12px;
+    place-items: start center;
+  }
+  .companion-shell {
+    padding: 17px;
+    border-radius: 20px;
+  }
+  .compact-website .website-risk-card {
+    padding: 17px;
+  }
+  .feature-list {
+    grid-template-columns: 1fr;
+  }
+  .website-risk-card {
+    padding: 20px;
+  }
+  .risk-reading > strong {
+    font-size: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .risk-meter > span {
+    transition: none;
+  }
+}

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from sentriflow.core.events import EventBus
 from sentriflow.core.models import Flow, Verdict, utc_now
-from sentriflow.ml.features import host_from_url, registered_domain
+from sentriflow.ml.features import canonical_origin, host_from_url, registered_domain
 from sentriflow.ml.predictor import Predictor
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,9 @@ class WebsiteMonitor:
             try:
                 if self.model:
                     async with self._inference_slots:
-                        site["analysis"] = await asyncio.to_thread(self.model.analyze, url)
+                        site["analysis"] = await asyncio.to_thread(
+                            self.model.analyze, canonical_origin(url) or ""
+                        )
                 else:
                     site["analysis"] = {
                         "state": "unavailable",

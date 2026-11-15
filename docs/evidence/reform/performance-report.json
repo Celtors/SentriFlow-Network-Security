@@ -1,0 +1,9 @@
+{
+  "measured_at": "2026-11-15T14:58:13.378319+00:00",
+  "samples": 150,
+  "model_load_ms": 100.117,
+  "analysis_including_explanations_median_ms": 2.92,
+  "analysis_including_explanations_p95_ms": 4.248,
+  "no_network_used": true,
+  "limitation": "Warm local CPU microbenchmark, three structural addresses, not a representative traffic load test."
+}

@@ -29,6 +29,15 @@ def main() -> None:
             "Frontend build is missing; run npm ci in frontend, then this command."
         )
     target = ROOT / "backend" / "src" / "sentriflow" / "web"
+    expected = (ROOT / "backend" / "src" / "sentriflow").resolve() / "web"
+    if (
+        target.is_symlink()
+        or target.resolve() != expected
+        or not target.resolve().is_relative_to(ROOT.resolve())
+    ):
+        raise SystemExit(
+            "Refusing to replace a dashboard directory outside this checkout"
+        )
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(source, target)

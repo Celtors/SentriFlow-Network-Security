@@ -1,0 +1,23 @@
+{
+  "measured_at": "2026-11-15T15:01:54.755174+00:00",
+  "model_id": "phiusiil-domain-v2-0a639fd03aea",
+  "ordinary_percentage": 4.9,
+  "unusual_percentage": 100.0,
+  "checks": [
+    "real_https_navigation",
+    "actual_shipped_model_inference",
+    "live_websocket_result",
+    "compact_default",
+    "expanded_privacy_details",
+    "static_form_structure",
+    "explicit_unobservable_browser_apis",
+    "no_sensitive_values_in_api",
+    "model_explanation_details",
+    "responsive_compact",
+    "authenticated_popup",
+    "reload_resynchronization"
+  ],
+  "origin_requests": 3,
+  "browser_errors": [],
+  "limitation": "Offline loopback fixture with public-shaped names; no external website labels or production accuracy measured. No OS routing or CA trust modified."
+}

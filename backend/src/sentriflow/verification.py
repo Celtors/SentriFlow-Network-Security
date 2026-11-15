@@ -142,6 +142,14 @@ async def local_stack(directory: Path, *, website_fixture: bool = False):
         # Test-only routing keeps these public-shaped names entirely on loopback.
         # Request URL/host and TLS SNI remain intact for real live inference.
         class FixtureRouting:
+            def server_connect(self, data):
+                address = data.server.address
+                if address and address[0] in fixture_hosts:
+                    data.server.address = (
+                        "127.0.0.1",
+                        https_port if address[1] == 443 else http_port,
+                    )
+
             def http_connect(self, flow):
                 if flow.request.host in fixture_hosts:
                     flow.server_conn.address = ("127.0.0.1", https_port)
