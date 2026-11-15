@@ -1,6 +1,6 @@
-# CURRENT STATE ? reform
+# CURRENT STATE - reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Milestone: end-to-end implementation, full validation and packaging passed; UI delivery checkpoint.
+Updated: 15 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED. Final handoff refreshed 15 November 2026.
 
 ## Objective and repository
 
@@ -16,7 +16,11 @@ No browser extension. Latest user implementation prompt is the primary spec.
   proposal/setup/lockfile changes are untouched. No reset/discard/force push.
 - Confirmed pushed: **12bd8f5** assessment; **93bbcf9** data/feature foundation.
   **51fc4c4** trained/calibrated model; **bf6158a** live inference/privacy integration.
-  Remote reform head verified after each push. Current UI milestone commit pending.
+  **d7f866b** compact UI, real browser evidence, hardening and documentation.
+  All five implementation checkpoints were successfully pushed to origin/reform;
+  remote HEAD d7f866bad64814741ecba74d712a6c19f205e7f6 was verified.
+  The final documentation checkpoint carries this refreshed handoff; use git log
+  for its revision. No implementation remains solely in this local worktree.
 
 ## Existing architecture retained
 
@@ -32,7 +36,7 @@ requests, remembered rules, alerts, persistent redacted history, per-process
 streaming byte rates, offline vector map, Windows routing/CA consent and recovery.
 Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
 
-## Model, data, artifacts ? COMPLETE and verified
+## Model, data, artifacts - COMPLETE and verified
 
 - Official UCI PhiUSIIL dataset 967, Arvind Prasad and Shalini Chandra (2024).
   Source: https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset
@@ -68,13 +72,13 @@ Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
   float32 traversal. Whole test-set export parity max absolute error 3.062e-14.
   Runtime needs no sklearn/numpy/network/training. Missing artifact -> unavailable.
 - Percentage=100*isotonic-calibrated positive-class inference (one decimal).
-  Display low<30/medium30?<70/high>=70; fixed policy, not tuned on test.
+  Display low<30/medium30-<70/high>=70; fixed policy, not tuned on test.
   Explanations rerun model replacing each feature with training median; local
   sensitivity only, not causal/additive or invented browser-behavior reasons.
 - Sanity probes: YouTube home and watch path identical 4.9%, Google/GitHub 4.4%;
   these are unlabelled smoke examples, not additional accuracy measurements.
 
-## Live integration and frontend ? COMPLETE and browser verified
+## Live integration and frontend - COMPLETE and browser verified
 
 - Runtime loads the shipped model once; off-loop inference with bounded concurrency.
   Only canonical scheme/hostname/port reaches model.analyze: query/path/userinfo
@@ -114,7 +118,7 @@ Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
 - Evidence: **docs/evidence/reform/** (browser/performance reports + screenshots);
   legacy regression report/screenshots under **reform/legacy/**. Test fixture routing
   in verification.py is opt-in only; real application has no public-host remapping.
-- Warm local inference including explanations,150 samples: median2.920ms/p954.248ms,
+- Warm local inference including explanations,150 samples: median 2.920 ms / p95 4.248 ms,
   model load100.117ms. Microbenchmark only, not representative long-running load.
 - CI workflow triggers now include reform. Runtime lock adds tldextract5.4.0 and
   requests-file3.0.1. Build packager validates its deletion target before replacing UI.
@@ -131,19 +135,20 @@ Static form structure is not evidence of filled/submitted values. Compressed/
 uninspected/unsupported HTML must remain unavailable. No hidden script injection.
 
 Model cannot detect all malware, phishing on compromised legitimate hosts or
-page-path content. Source corpus has HTTPS/source bias (~46% forest importance).
+page-path content. Source corpus has HTTPS/source bias (about 46% forest importance).
 No production labels/external or temporal validation, prior correction or guarantee.
-Summaries planned memory-only bounded50, restart clears them; existing redacted
+Summaries are memory-only, bounded to 50, restart clears them; existing redacted
 flow/rule persistence retained. No automatic blocking solely from model estimate.
 
 ## Validation
 
 - Full scripts/test.ps1 gate passed: **179 backend tests passed,3 skipped**, Ruff
   lint/format, mypy core/inspection, ESLint, frontend tests and production build.
-  New origin-boundary regression subsequently passed targeted6 integration tests.
   Latest full-gate rerun also passed: **179 backend passed /3 skipped,18 frontend
   passed**, Ruff lint/format, mypy, ESLint and production build. The current-page
-  history cap and origin-only model boundary regressions are included.
+  history cap and origin-only model boundary regressions are included. The three
+  skipped cases are existing Windows console-termination manual-acceptance tests;
+  browser verification separately exercised real Windows CLI startup.
 - Actual sklearn training and all32,289-row exported inference parity passed.
   Shipped model loads without training; corruption/schema/positive-class tested.
 - Real reform browser and legacy browser checks both passed (details above).
@@ -157,6 +162,8 @@ flow/rule persistence retained. No automatic blocking solely from model estimate
   startup, authenticated model status, rejected missing token and dashboard serving
   passed without retraining. See package-report.json. A mistyped initial package
   name produced an unrelated ignored wheel, never installed or part of delivery.
+- CI triggers include reform; remote Actions result is not claimed verified. All
+  stated passing gates were actually run locally in this isolated worktree.
 
 ## Commands
 
@@ -186,10 +193,23 @@ calibration/evaluation/export, shipped artifact, live inference/privacy hooks,
 authenticated API/WS integration, compact/expanded UI, real Edge checks, legacy
 regression, full static/test/build gate and installed-wheel verification.
 
-Remaining for this checkpoint: commit and push the validated UI/documentation/
-evidence changes, verify remote equality, then record the successful commit in
-this file and push the final handoff. There is no known failing implementation
-check or external push blocker. Original dirty checkout remains untouched.
+Implementation status: SUCCESS for the specified end-to-end local product scope.
+No known failing gate, missing trained artifact, broken integration or push blocker.
+The original checkout's user edits were preserved. Current worktree is separate;
+run the new app from **SentriFlow-Reform**, not the unchanged merge checkout.
+
+Ready-to-run here (dependencies and packaged UI already installed):
+
+```powershell
+cd D:\ITBx_Sem5\SentriFlow\SentriFlow-Reform
+.\.venv\Scripts\python.exe -I -m sentriflow run
+```
+
+On a fresh clone run setup/build per README first; no model training is needed.
+For continuation: read this file and docs/ml-model.md, verify current git status,
+then choose only explicitly scoped follow-up improvements. Reproduce checks using
+scripts/test.ps1, scripts/check-reform.py and scripts/check-browser.py. Exact final
+results are in docs/evidence/reform/validation.json and linked evidence reports.
 
 Limits deliberately not claimed complete: native Windows system-wide routing/CA
 acceptance, production traffic accuracy, external/temporal datasets, focused-tab/

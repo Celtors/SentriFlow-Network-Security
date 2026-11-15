@@ -3,7 +3,8 @@
   "branch": "reform",
   "backend_tests": {
     "passed": 179,
-    "skipped": 3
+    "skipped": 3,
+    "skip_reason": "Three pre-existing Windows console-termination manual-acceptance cases"
   },
   "frontend_tests": {
     "passed": 18
@@ -48,5 +49,8 @@
     "Loopback HTTPS browser fixtures, no native Windows routing/CA acceptance",
     "No focused-tab/browser-JS permission/storage/fingerprinting telemetry",
     "Warm CPU microbenchmark, no long-running load test"
-  ]
+  ],
+  "verified_implementation_commit": "d7f866bad64814741ecba74d712a6c19f205e7f6",
+  "implementation_push_verified": true,
+  "remote_ci_status": "Not claimed; local gate and browser evidence verified"
 }
