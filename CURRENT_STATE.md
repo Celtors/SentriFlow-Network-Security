@@ -1,10 +1,11 @@
 # CURRENT STATE - reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED. Final handoff refreshed 15 November 2026.
+Updated: 16 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED. Original ML/UI delivery completed 15 November; latest policy follow-up is below.
 
 ## Latest follow-up: binary-body Halt exclusion, 16 November 2026
 
-Status: IMPLEMENTED AND LOCALLY VERIFIED; push pending. This section supersedes earlier
+Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED to `origin/reform` in `24f67d5`
+(`fix: exclude binary bodies from automatic Halt prompts`). This section supersedes earlier
 binary-body Halt behavior; the original delivery record below remains historical.
 
 - User request: stop binary request bodies from flooding the Allow/Block queue.
