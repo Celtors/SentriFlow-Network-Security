@@ -67,7 +67,8 @@ def test_encoded_json_url_and_headers():
         (gzip.compress(b"a" * 2_000_000), {"content-encoding": "gzip"}),
         (b"broken gzip", {"content-encoding": "gzip"}),
         (b"abc", {"content-encoding": "br"}),
-        (b"abc", {"content-type": "application/octet-stream"}),
+        (b"\xff", {"content-type": "application/json"}),
+        (b'{"broken":', {"content-type": "application/json"}),
     ],
 )
 def test_uninspectable_body_has_explicit_finding(body, headers):
@@ -75,6 +76,40 @@ def test_uninspectable_body_has_explicit_finding(body, headers):
         "demo.test", "http://demo.test", headers, body, patterns=[], trackers=TrackerMatcher()
     )
     assert any(f.type == "inspection_limit" for f in findings)
+
+
+@pytest.mark.parametrize(
+    "body,headers",
+    [
+        (b"\x00\xffstudent@example.test", {"content-type": "application/octet-stream"}),
+        (b"\xff", {"content-type": "application/x-protobuf"}),
+        (b"\xff", {"content-type": "image/png"}),
+        (b"\xff", {"content-type": "audio/webm"}),
+        (b"\xff", {"content-type": "application/octet-stream; name=form.json"}),
+        (b"\xff", {}),
+        (b"--test\r\n\xff\r\n--test--", {"content-type": "multipart/form-data; boundary=test"}),
+        (
+            b"not decoded",
+            {"content-type": "application/octet-stream", "content-encoding": "br"},
+        ),
+        (b"a" * 1_048_577, {"content-type": "application/octet-stream"}),
+    ],
+)
+def test_binary_body_excluded_but_url_and_headers_checked(body, headers):
+    findings = analyze(
+        "demo.test",
+        "http://demo.test/?email=student%40example.test",
+        {**headers, "x-demo-secret": "DEMO_SECRET"},
+        body,
+        patterns=[CustomPattern(label="Demo secret", pattern="DEMO_SECRET")],
+        trackers=TrackerMatcher(),
+    )
+    assert any(f.type == "inspection_skipped" for f in findings)
+    assert not any(f.type == "inspection_limit" for f in findings)
+    assert {(f.label, f.location) for f in findings if f.type in {"pii", "custom"}} == {
+        ("Email address", "url"),
+        ("Demo secret", "headers"),
+    }
 
 
 def test_inspector_toggle_preserves_tracker_check():

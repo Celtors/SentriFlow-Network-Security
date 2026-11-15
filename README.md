@@ -52,6 +52,11 @@ map. `scripts/dev.ps1` runs both services; open
 `scripts/build.ps1` packages the dashboard for the single-process backend server. The printed
 launch URL signs in automatically; the login form also accepts the token from its fragment.
 
+Binary request bodies are excluded from text inspection, so their format alone does not
+open an Allow/Block popup. URL/header findings, tracker policy, saved rules and unknown-process
+large-upload checks still apply. Traffic records that the body was not inspected; PII inside
+binary bodies is outside this text inspector's coverage.
+
 For Linux backend development:
 
 ```bash

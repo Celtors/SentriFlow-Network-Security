@@ -55,6 +55,15 @@ A risk enters its own Halt future. A user decision, timeout, capacity limit or s
 it; silence never forwards the payload. Allowed response chunks update rates before completion.
 Masked metadata, alerts and the disclosed score reach the same dashboard state.
 
+Binary request bodies are excluded from text inspection and do not trigger Halt just
+because they are binary. Their URL/headers, tracker policy and saved rules still apply;
+an independent unknown-process large-upload trigger can also pause them. Traffic shows
+the excluded-body note and `not_inspected` status without creating a privacy alert for
+every binary request. The app does not claim to detect PII inside excluded bodies.
+Malformed or unsupported text payloads retain the existing Halt behavior.
+After updating this backend, stop and restart SentriFlow to clear old pending holds and
+use the new policy. A frontend rebuild or model retraining is not required.
+
 The same intercepted request now calls `WebsiteMonitor`: navigation metadata identifies an
 observed page, numeric domain features feed the shipped Random Forest in a worker thread,
 and `website.updated` updates the compact card. Background traffic does not replace a known

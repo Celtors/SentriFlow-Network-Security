@@ -104,7 +104,7 @@ class Runtime:
         )
         flow.verdict = decision.action
         await self.websites.observe_request(flow, url, headers)
-        if any(f.type == "inspection_limit" for f in flow.findings):
+        if any(f.type in {"inspection_limit", "inspection_skipped"} for f in flow.findings):
             flow.tls_status = "not_inspected"
         flow.verdict_source = decision.source
         flow.reason = "; ".join(f.label for f in flow.findings) or decision.source
@@ -129,6 +129,9 @@ class Runtime:
         flow.updated_at, flow.deadline = utc_now(), None
         await self.flows.save(flow)
         for finding in flow.findings:
+            # Keep excluded-body metadata in Traffic without flooding privacy alerts.
+            if finding.type == "inspection_skipped":
+                continue
             alert = Alert(
                 flow_id=flow.id,
                 type=finding.type,
@@ -246,7 +249,9 @@ class Runtime:
         score = await self.flows.score()
         risk_rows = await self.db.fetch(
             "SELECT COUNT(*) AS total, COALESCE(SUM(verdict='block'),0) AS blocked "
-            "FROM flows WHERE verdict IN ('allow','block') AND findings_json != '[]'"
+            "FROM flows WHERE verdict IN ('allow','block') "
+            "AND EXISTS (SELECT 1 FROM json_each(findings_json) "
+            "WHERE json_extract(value, '$.type') != 'inspection_skipped')"
         )
         score.update(risky_resolved=risk_rows[0]["total"], risky_blocked=risk_rows[0]["blocked"])
         alerts = []

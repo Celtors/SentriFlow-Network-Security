@@ -4,7 +4,7 @@ import socket
 import httpx
 import pytest
 
-from sentriflow.core.models import Verdict
+from sentriflow.core.models import Rule, Verdict
 from sentriflow.proxy.process_resolver import ProcessResolver
 from sentriflow.proxy.runner import create_master
 
@@ -137,15 +137,62 @@ async def test_download_is_counted_before_response_completes(pipeline, runtime):
     assert flow.bytes_down == 2048 and flow.state == "completed"
 
 
-async def test_binary_halt_and_inspector_fail_closed(pipeline, runtime, monkeypatch):
+@pytest.mark.parametrize("content_type", ["application/octet-stream", "application/x-protobuf"])
+async def test_binary_requests_forward_without_halts_or_alerts(pipeline, runtime, content_type):
+    client, url, received, _ = pipeline
+    body = b"\x00\xffstudent@example.test"
+    async with runtime.bus.subscribe() as queue:
+        for _ in range(5):
+            response = await client.post(url, content=body, headers={"Content-Type": content_type})
+            assert response.status_code == 200
+        events = []
+        while not queue.empty():
+            events.append(queue.get_nowait())
+    assert [request["body"] for request in received] == [body] * 5
+    assert not runtime.halts.pending()
+    assert not any(event is not None and event.type == "halt.requested" for event in events)
+    assert not await runtime.alerts.list()
+    assert (await runtime.snapshot())["score"]["risky_resolved"] == 0
+    flows = await runtime.flows.list()
+    assert len(flows) == 5
+    assert all(flow.tls_status == "not_inspected" for flow in flows)
+    assert all(
+        [finding.type for finding in flow.findings] == ["inspection_skipped"] for flow in flows
+    )
+    assert "student@example.test" not in str(await runtime.db.fetch("SELECT * FROM flows"))
+
+
+async def test_binary_body_does_not_bypass_sensitive_request_headers(pipeline, runtime):
     client, url, received, _ = pipeline
     request = asyncio.create_task(
-        client.post(url, content=b"\xff", headers={"Content-Type": "application/octet-stream"})
+        client.post(
+            url,
+            content=b"\xff",
+            headers={"Content-Type": "application/octet-stream", "X-Demo": "student@example.test"},
+        )
     )
     flow_id = await next_pending(runtime)
-    assert runtime.halts.pending()[0].flow.tls_status == "not_inspected"
+    flow = runtime.halts.pending()[0].flow
+    assert flow.tls_status == "not_inspected"
+    assert any(f.type == "pii" and f.location == "headers" for f in flow.findings)
+    assert not received
     await runtime.halts.resolve(flow_id, Verdict.BLOCK)
     assert (await request).status_code == 403 and not received
+
+
+async def test_binary_body_does_not_bypass_saved_block(pipeline, runtime):
+    client, url, received, _ = pipeline
+    await runtime.rules.save(Rule(host_match="127.0.0.1", action=Verdict.BLOCK))
+    response = await client.post(
+        url, content=b"\xff", headers={"Content-Type": "application/octet-stream"}
+    )
+    assert response.status_code == 403 and not received
+    assert not runtime.halts.pending()
+    assert (await runtime.flows.list())[0].verdict_source == "rule"
+
+
+async def test_inspector_fail_closed(pipeline, runtime, monkeypatch):
+    client, url, received, _ = pipeline
 
     async def fail(*args, **kwargs):
         raise RuntimeError("Simulated failure")
@@ -159,6 +206,12 @@ async def test_tracker_autoblock_and_oversize_body(pipeline, runtime):
     await runtime.blocklist.add("127.0.0.1", "test-only-local-marker")
     runtime.config.tracker_policy = "block"
     assert (await client.get(url)).status_code == 403 and not received
+    assert (
+        await client.post(
+            url, content=b"\xff", headers={"Content-Type": "application/octet-stream"}
+        )
+    ).status_code == 403
+    assert not received
     assert (await runtime.flows.list())[0].verdict == Verdict.BLOCK
 
 

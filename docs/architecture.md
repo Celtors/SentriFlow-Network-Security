@@ -27,10 +27,18 @@ Unsupported future database versions are rejected.
 
 For each request the addon resolves the client source port, constructs safe metadata, and
 passes raw URL/headers/body to inspection in memory. Inspection runs in a worker thread.
-Inspection is bounded to 1 MiB of decoded request content. Unsupported encodings, binary
-content and decoding/regex limits produce an explicit finding and Halt unless a saved rule
-applies. JSON, UTF-8 text, URL-encoded forms, multipart text, gzip and zlib deflate are supported;
-Brotli currently produces an uninspectable-content Halt. mitmproxy additionally rejects bodies
+Text inspection is bounded to 1 MiB of decoded request content. Binary body types are
+excluded from text inspection before decompression; URL and headers are still checked.
+Non-UTF-8 bodies without a Content-Type, or in multipart requests containing binary data,
+are also excluded. This creates a low-severity `inspection_skipped` note in Traffic and marks
+the flow `not_inspected`, without creating a Halt or a privacy alert solely for that note.
+Excluded-body notes alone do not count as risky requests in the dashboard summary.
+Binary content is forwarded unchanged unless another policy applies: sensitive URL/header
+findings, saved rules, tracker policy and the unknown-process large-upload check remain active.
+The binary body itself is not checked for PII. Unsupported text encodings and text
+decoding/regex limits still produce an explicit finding and Halt unless a saved rule applies.
+JSON, UTF-8 text, URL-encoded forms, multipart text, gzip and zlib deflate are supported;
+Brotli text currently produces an uninspectable-content Halt. mitmproxy additionally rejects bodies
 above 2 MiB before inspection. Rejected oversized transport flows are not included in the
 current request-hook event stream; this is a coverage limit for future R3 integration.
 

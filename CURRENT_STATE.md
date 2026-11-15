@@ -2,6 +2,30 @@
 
 Updated: 15 November 2026 (Asia/Jakarta). Status: IMPLEMENTED, LOCALLY VERIFIED, AND PUSHED. Final handoff refreshed 15 November 2026.
 
+## Latest follow-up: binary-body Halt exclusion, 16 November 2026
+
+Status: IMPLEMENTED AND LOCALLY VERIFIED; push pending. This section supersedes earlier
+binary-body Halt behavior; the original delivery record below remains historical.
+
+- User request: stop binary request bodies from flooding the Allow/Block queue.
+- Binary MIME types are excluded before text decoding/decompression, while URL/header
+  checks remain enabled. Non-UTF-8 untyped/multipart bodies are also treated as binary.
+- Exclusions create an `inspection_skipped` note in Traffic and `not_inspected` status,
+  without a Halt or an alert solely because the body is binary. Raw bodies are not stored.
+  These notes alone are excluded from the dashboard's risky-request counts.
+- Saved rules, PII/custom strings in URL/headers, tracker policies and the independent
+  unknown-process large-upload check still apply. Text decoding/size/encoding limits,
+  JSON errors and inspector failures retain their existing enforcement behavior.
+- Binary-body content is outside PII coverage. Transport-size limits still apply.
+- Validation: 193 backend tests passed, 3 existing manual acceptance cases skipped.
+  Ruff check/format and strict mypy for core/inspection passed. Real loopback-proxy tests
+  verify repeated octet-stream/Protobuf forwarding unchanged with no Halt events/alerts,
+  exclusion from risk counts, PII-header Halt, saved Block and tracker Block behavior.
+  No Windows system routing or CA trust was changed during these checks. Frontend and
+  model files are unchanged; native Google Meet traffic was not replayed in verification.
+- Restart the backend after updating to discard old pending holds and load the policy.
+  No frontend rebuild, CA installation or model retraining is needed for this change.
+
 ## Objective and repository
 
 Implement genuine phishing-risk inference inside the existing SentriFlow app,

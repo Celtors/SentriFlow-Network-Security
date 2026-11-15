@@ -12,13 +12,31 @@ class InspectionLimit(ValueError):
     pass
 
 
+class BinaryBodyExcluded(ValueError):
+    """The body is outside text inspection; request metadata can still be checked."""
+
+
 def extract_parts(
     url: str, headers: Mapping[str, str], body: bytes, limit: int = MAX_INSPECTION_BYTES
 ) -> list[tuple[str, str]]:
     header_text = "\n".join(f"{k}: {v}" for k, v in headers.items())
-    if len(url) + len(header_text) > limit or len(body) > limit:
+    if len(url) + len(header_text) > limit:
         raise InspectionLimit("Request exceeds inspection limit")
     parts = [("url", unquote_plus(url)), ("headers", header_text)]
+    if not body:
+        return parts
+    content_type = headers.get("content-type", "").partition(";")[0].strip().lower()
+    textual = (
+        not content_type
+        or content_type.startswith("text/")
+        or any(kind in content_type for kind in ("json", "xml", "form", "javascript"))
+    )
+    # Binary bodies are deliberately excluded, including compressed/large ones.
+    # The proxy's transport-size bound still applies before this inspector.
+    if not textual:
+        raise BinaryBodyExcluded("Binary request body excluded from inspection")
+    if len(body) > limit:
+        raise InspectionLimit("Request exceeds inspection limit")
     encoding = headers.get("content-encoding", "").lower()
     if encoding in ("gzip", "deflate"):
         try:
@@ -32,18 +50,12 @@ def extract_parts(
             raise InspectionLimit("Cannot decode compressed request") from error
     elif encoding and encoding != "identity":
         raise InspectionLimit("Unsupported request encoding")
-    content_type = headers.get("content-type", "").lower()
-    textual = (
-        not content_type
-        or content_type.startswith("text/")
-        or any(kind in content_type for kind in ("json", "xml", "form", "javascript"))
-    )
-    if body and not textual:
-        raise InspectionLimit("Binary request body is not inspected")
     if body:
         try:
             text = body.decode("utf-8")
         except UnicodeDecodeError as error:
+            if not content_type or content_type.startswith("multipart/"):
+                raise BinaryBodyExcluded("Binary request body excluded from inspection") from error
             raise InspectionLimit("Request text is not valid UTF-8") from error
         if "json" in content_type:
             try:
