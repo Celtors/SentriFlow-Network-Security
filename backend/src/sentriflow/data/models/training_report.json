@@ -1,0 +1,611 @@
+{
+  "seed": 42,
+  "python": "3.13.9",
+  "sklearn": "1.9.1",
+  "created_at": "2026-11-15T14:33:36.276047+00:00",
+  "dataset": {
+    "source": "https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset",
+    "authors": [
+      "Arvind Prasad",
+      "Shalini Chandra"
+    ],
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "archive_sha256": "0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a",
+    "csv": "PhiUSIIL_Phishing_URL_Dataset.csv",
+    "columns": [
+      "FILENAME",
+      "URL",
+      "URLLength",
+      "Domain",
+      "DomainLength",
+      "IsDomainIP",
+      "TLD",
+      "URLSimilarityIndex",
+      "CharContinuationRate",
+      "TLDLegitimateProb",
+      "URLCharProb",
+      "TLDLength",
+      "NoOfSubDomain",
+      "HasObfuscation",
+      "NoOfObfuscatedChar",
+      "ObfuscationRatio",
+      "NoOfLettersInURL",
+      "LetterRatioInURL",
+      "NoOfDegitsInURL",
+      "DegitRatioInURL",
+      "NoOfEqualsInURL",
+      "NoOfQMarkInURL",
+      "NoOfAmpersandInURL",
+      "NoOfOtherSpecialCharsInURL",
+      "SpacialCharRatioInURL",
+      "IsHTTPS",
+      "LineOfCode",
+      "LargestLineLength",
+      "HasTitle",
+      "Title",
+      "DomainTitleMatchScore",
+      "URLTitleMatchScore",
+      "HasFavicon",
+      "Robots",
+      "IsResponsive",
+      "NoOfURLRedirect",
+      "NoOfSelfRedirect",
+      "HasDescription",
+      "NoOfPopup",
+      "NoOfiFrame",
+      "HasExternalFormSubmit",
+      "HasSocialNet",
+      "HasSubmitButton",
+      "HasHiddenFields",
+      "HasPasswordField",
+      "Bank",
+      "Pay",
+      "Crypto",
+      "HasCopyrightInfo",
+      "NoOfImage",
+      "NoOfCSS",
+      "NoOfJS",
+      "NoOfSelfRef",
+      "NoOfEmptyRef",
+      "NoOfExternalRef",
+      "label"
+    ],
+    "original_labels": {
+      "1": 134850,
+      "0": 100945
+    },
+    "positive_class": "1=phishing (inverted UCI label)",
+    "source_rows": 235795,
+    "invalid_rows": 0,
+    "duplicate_rows": 14414,
+    "conflicting_urls_removed": 12,
+    "retained_rows": 221369,
+    "registered_domain_groups": 197699,
+    "training_inputs": "Only recomputed numeric domain structure; no path/query or provided derived columns"
+  },
+  "feature_version": 2,
+  "features": [
+    "host_length",
+    "https_scheme",
+    "host_is_ip",
+    "subdomain_count",
+    "longest_label",
+    "tld_length",
+    "host_digits",
+    "host_digit_ratio",
+    "host_hyphens",
+    "host_entropy",
+    "punycode",
+    "host_dots",
+    "nonstandard_port"
+  ],
+  "split_method": "Disjoint registered domains including private PSL; 60/10/15/15 groups",
+  "splits": {
+    "train": {
+      "rows": 135209,
+      "groups": 118619,
+      "phishing": 54184,
+      "legitimate": 81025
+    },
+    "selection": {
+      "rows": 21561,
+      "groups": 19770,
+      "phishing": 8078,
+      "legitimate": 13483
+    },
+    "calibration": {
+      "rows": 32310,
+      "groups": 29655,
+      "phishing": 12127,
+      "legitimate": 20183
+    },
+    "test": {
+      "rows": 32289,
+      "groups": 29655,
+      "phishing": 12142,
+      "legitimate": 20147
+    }
+  },
+  "group_overlap": 0,
+  "global_feature_importance": {
+    "host_length": 0.08377932213828884,
+    "https_scheme": 0.4609787539518687,
+    "host_is_ip": 1.660170447568786e-05,
+    "subdomain_count": 0.05854655091516757,
+    "longest_label": 0.0168790128068388,
+    "tld_length": 0.07546348242700969,
+    "host_digits": 0.11038414388510627,
+    "host_digit_ratio": 0.0862545373080286,
+    "host_hyphens": 0.014461248675680943,
+    "host_entropy": 0.04081005738961697,
+    "punycode": 0.00013553413817294765,
+    "host_dots": 0.05229075465974486,
+    "nonstandard_port": 0.0
+  },
+  "feature_summary_by_class": {
+    "0": {
+      "host_length": {
+        "mean": 15.228629911449294,
+        "median": 15.0
+      },
+      "https_scheme": {
+        "mean": 1.0,
+        "median": 1.0
+      },
+      "host_is_ip": {
+        "mean": 0.0,
+        "median": 0.0
+      },
+      "subdomain_count": {
+        "mean": 0.02978388881472582,
+        "median": 0.0
+      },
+      "longest_label": {
+        "mean": 10.893153265399961,
+        "median": 10.0
+      },
+      "tld_length": {
+        "mean": 3.2038742787641468,
+        "median": 3.0
+      },
+      "host_digits": {
+        "mean": 0.050601462495735626,
+        "median": 0.0
+      },
+      "host_digit_ratio": {
+        "mean": 0.004105364612284675,
+        "median": 0.0
+      },
+      "host_hyphens": {
+        "mean": 0.08321096426823299,
+        "median": 0.0
+      },
+      "host_entropy": {
+        "mean": 3.304171080502657,
+        "median": 3.3371753411230767
+      },
+      "punycode": {
+        "mean": 0.0,
+        "median": 0.0
+      },
+      "host_dots": {
+        "mean": 1.1616606594580163,
+        "median": 1.0
+      },
+      "nonstandard_port": {
+        "mean": 0.0,
+        "median": 0.0
+      }
+    },
+    "1": {
+      "host_length": {
+        "mean": 23.292461661138784,
+        "median": 20.0
+      },
+      "https_scheme": {
+        "mean": 0.44767771087818237,
+        "median": 0.0
+      },
+      "host_is_ip": {
+        "mean": 0.001814378661982411,
+        "median": 0.0
+      },
+      "subdomain_count": {
+        "mean": 0.40651327269995724,
+        "median": 0.0
+      },
+      "longest_label": {
+        "mean": 14.057216488888375,
+        "median": 12.0
+      },
+      "tld_length": {
+        "mean": 5.227317377587223,
+        "median": 3.0
+      },
+      "host_digits": {
+        "mean": 2.0712692561047485,
+        "median": 0.0
+      },
+      "host_digit_ratio": {
+        "mean": 0.07277432696845865,
+        "median": 0.0
+      },
+      "host_hyphens": {
+        "mean": 0.5703620667737573,
+        "median": 0.0
+      },
+      "host_entropy": {
+        "mean": 3.6086171120656476,
+        "median": 3.616874605956222
+      },
+      "punycode": {
+        "mean": 0.0015601345182651304,
+        "median": 0.0
+      },
+      "host_dots": {
+        "mean": 1.7537414337058395,
+        "median": 2.0
+      },
+      "nonstandard_port": {
+        "mean": 0.00017334827980723671,
+        "median": 0.0
+      }
+    }
+  },
+  "selected": "random_forest",
+  "selection_comparison": {
+    "random_forest": {
+      "accuracy": 0.9612726682435879,
+      "precision": 0.9857813547954393,
+      "recall": 0.9097548898242139,
+      "f1": 0.9462434816197772,
+      "roc_auc": 0.9696120367395421,
+      "brier": 0.03526256584370619,
+      "false_positive_rate": 0.007861751835644887,
+      "false_negative_rate": 0.09024511017578608,
+      "confusion_matrix": {
+        "tn": 13377,
+        "fp": 106,
+        "fn": 729,
+        "tp": 7349
+      },
+      "ece_10_bins": 0.028300099833084572,
+      "reliability_bins": [
+        {
+          "lower": 0.0,
+          "count": 12506,
+          "mean_probability": 0.059919733267978253,
+          "phishing_frequency": 0.039900847593155285
+        },
+        {
+          "lower": 0.1,
+          "count": 1162,
+          "mean_probability": 0.13376706969918808,
+          "phishing_frequency": 0.09896729776247848
+        },
+        {
+          "lower": 0.2,
+          "count": 215,
+          "mean_probability": 0.24156024601596104,
+          "phishing_frequency": 0.18604651162790697
+        },
+        {
+          "lower": 0.3,
+          "count": 132,
+          "mean_probability": 0.3418420905847706,
+          "phishing_frequency": 0.24242424242424243
+        },
+        {
+          "lower": 0.4,
+          "count": 91,
+          "mean_probability": 0.44719143330511013,
+          "phishing_frequency": 0.4725274725274725
+        },
+        {
+          "lower": 0.5,
+          "count": 72,
+          "mean_probability": 0.5449082684893702,
+          "phishing_frequency": 0.4722222222222222
+        },
+        {
+          "lower": 0.6,
+          "count": 90,
+          "mean_probability": 0.6471242281226247,
+          "phishing_frequency": 0.6333333333333333
+        },
+        {
+          "lower": 0.7,
+          "count": 115,
+          "mean_probability": 0.7511766274325206,
+          "phishing_frequency": 0.8695652173913043
+        },
+        {
+          "lower": 0.8,
+          "count": 231,
+          "mean_probability": 0.8636665642411764,
+          "phishing_frequency": 0.948051948051948
+        },
+        {
+          "lower": 0.9,
+          "count": 6947,
+          "mean_probability": 0.9625106582015736,
+          "phishing_frequency": 0.9988484237800489
+        }
+      ]
+    },
+    "logistic_regression": {
+      "accuracy": 0.9521821807893882,
+      "precision": 0.9803680981595092,
+      "recall": 0.8901955929685565,
+      "f1": 0.9331084149743722,
+      "roc_auc": 0.9648158262326871,
+      "brier": 0.04011174219967719,
+      "false_positive_rate": 0.01068011570125343,
+      "false_negative_rate": 0.10980440703144342,
+      "confusion_matrix": {
+        "tn": 13339,
+        "fp": 144,
+        "fn": 887,
+        "tp": 7191
+      },
+      "ece_10_bins": 0.007236372848276831,
+      "reliability_bins": [
+        {
+          "lower": 0.0,
+          "count": 12419,
+          "mean_probability": 0.04434476396476847,
+          "phishing_frequency": 0.04042193413318303
+        },
+        {
+          "lower": 0.1,
+          "count": 1197,
+          "mean_probability": 0.13340363769222827,
+          "phishing_frequency": 0.11278195488721804
+        },
+        {
+          "lower": 0.2,
+          "count": 288,
+          "mean_probability": 0.24546495848133532,
+          "phishing_frequency": 0.3993055555555556
+        },
+        {
+          "lower": 0.3,
+          "count": 183,
+          "mean_probability": 0.34779232771425805,
+          "phishing_frequency": 0.37158469945355194
+        },
+        {
+          "lower": 0.4,
+          "count": 139,
+          "mean_probability": 0.4454266690696653,
+          "phishing_frequency": 0.48201438848920863
+        },
+        {
+          "lower": 0.5,
+          "count": 93,
+          "mean_probability": 0.5472997630359183,
+          "phishing_frequency": 0.5698924731182796
+        },
+        {
+          "lower": 0.6,
+          "count": 116,
+          "mean_probability": 0.645084965048961,
+          "phishing_frequency": 0.6982758620689655
+        },
+        {
+          "lower": 0.7,
+          "count": 111,
+          "mean_probability": 0.7611970656119134,
+          "phishing_frequency": 0.7567567567567568
+        },
+        {
+          "lower": 0.8,
+          "count": 128,
+          "mean_probability": 0.8541875745273786,
+          "phishing_frequency": 0.9296875
+        },
+        {
+          "lower": 0.9,
+          "count": 6887,
+          "mean_probability": 0.9967253865493334,
+          "phishing_frequency": 0.9952083635835632
+        }
+      ]
+    }
+  },
+  "selection_criterion": "Highest selection ROC AUC; test untouched until selection frozen",
+  "calibration": "Isotonic regression fitted only on disjoint calibration domains",
+  "test_uncalibrated": {
+    "accuracy": 0.9599863730682275,
+    "precision": 0.9863726017572172,
+    "recall": 0.9061110196013836,
+    "f1": 0.9445398351648352,
+    "roc_auc": 0.970068845084004,
+    "brier": 0.03615418915759802,
+    "false_positive_rate": 0.007544547575321388,
+    "false_negative_rate": 0.09388898039861637,
+    "confusion_matrix": {
+      "tn": 19995,
+      "fp": 152,
+      "fn": 1140,
+      "tp": 11002
+    },
+    "ece_10_bins": 0.026772495618903398,
+    "reliability_bins": [
+      {
+        "lower": 0.0,
+        "count": 18812,
+        "mean_probability": 0.059924734206840184,
+        "phishing_frequency": 0.04008079948968744
+      },
+      {
+        "lower": 0.1,
+        "count": 1703,
+        "mean_probability": 0.13264053397212575,
+        "phishing_frequency": 0.1103934233705226
+      },
+      {
+        "lower": 0.2,
+        "count": 310,
+        "mean_probability": 0.24428686471898825,
+        "phishing_frequency": 0.24838709677419354
+      },
+      {
+        "lower": 0.3,
+        "count": 195,
+        "mean_probability": 0.3438248216804024,
+        "phishing_frequency": 0.3487179487179487
+      },
+      {
+        "lower": 0.4,
+        "count": 115,
+        "mean_probability": 0.4473653085017592,
+        "phishing_frequency": 0.4608695652173913
+      },
+      {
+        "lower": 0.5,
+        "count": 132,
+        "mean_probability": 0.5502915267436532,
+        "phishing_frequency": 0.6287878787878788
+      },
+      {
+        "lower": 0.6,
+        "count": 134,
+        "mean_probability": 0.6477325604838823,
+        "phishing_frequency": 0.664179104477612
+      },
+      {
+        "lower": 0.7,
+        "count": 194,
+        "mean_probability": 0.7437590201533691,
+        "phishing_frequency": 0.8505154639175257
+      },
+      {
+        "lower": 0.8,
+        "count": 368,
+        "mean_probability": 0.8611543898151713,
+        "phishing_frequency": 0.9483695652173914
+      },
+      {
+        "lower": 0.9,
+        "count": 10326,
+        "mean_probability": 0.9618325904948508,
+        "phishing_frequency": 0.9990315707921751
+      }
+    ]
+  },
+  "test_calibrated": {
+    "accuracy": 0.9599554027687448,
+    "precision": 0.9834239372604937,
+    "recall": 0.9088288585076594,
+    "f1": 0.9446560801266961,
+    "roc_auc": 0.9700287142508656,
+    "brier": 0.03509953326892654,
+    "false_positive_rate": 0.009232143743485383,
+    "false_negative_rate": 0.09117114149234064,
+    "confusion_matrix": {
+      "tn": 19961,
+      "fp": 186,
+      "fn": 1107,
+      "tp": 11035
+    },
+    "ece_10_bins": 0.002651509429728697,
+    "reliability_bins": [
+      {
+        "lower": 0.0,
+        "count": 19458,
+        "mean_probability": 0.041766159771804465,
+        "phishing_frequency": 0.041319765649090345
+      },
+      {
+        "lower": 0.1,
+        "count": 1281,
+        "mean_probability": 0.12757855072239946,
+        "phishing_frequency": 0.14676034348165495
+      },
+      {
+        "lower": 0.2,
+        "count": 39,
+        "mean_probability": 0.22617236427417545,
+        "phishing_frequency": 0.3076923076923077
+      },
+      {
+        "lower": 0.3,
+        "count": 95,
+        "mean_probability": 0.35776711781738013,
+        "phishing_frequency": 0.30526315789473685
+      },
+      {
+        "lower": 0.4,
+        "count": 195,
+        "mean_probability": 0.42191113658815416,
+        "phishing_frequency": 0.37948717948717947
+      },
+      {
+        "lower": 0.5,
+        "count": 213,
+        "mean_probability": 0.5610301875206816,
+        "phishing_frequency": 0.5774647887323944
+      },
+      {
+        "lower": 0.6,
+        "count": 35,
+        "mean_probability": 0.6499999999999999,
+        "phishing_frequency": 0.6
+      },
+      {
+        "lower": 0.7,
+        "count": 14,
+        "mean_probability": 0.7381971103491242,
+        "phishing_frequency": 0.5714285714285714
+      },
+      {
+        "lower": 0.8,
+        "count": 1,
+        "mean_probability": 0.8523998604748059,
+        "phishing_frequency": 1.0
+      },
+      {
+        "lower": 0.9,
+        "count": 10958,
+        "mean_probability": 0.9956364317620895,
+        "phishing_frequency": 0.9930644278152948
+      }
+    ]
+  },
+  "test_prior_baseline": {
+    "accuracy": 0.623958623679891,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "roc_auc": 0.5,
+    "brier": 0.23524440780008488,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 1.0,
+    "confusion_matrix": {
+      "tn": 20147,
+      "fp": 0,
+      "fn": 12142,
+      "tp": 0
+    },
+    "ece_10_bins": 0.024701177799809015,
+    "reliability_bins": [
+      {
+        "lower": 0.4,
+        "count": 32289,
+        "mean_probability": 0.40074255411991805,
+        "phishing_frequency": 0.37604137632010903
+      }
+    ]
+  },
+  "thresholds": {
+    "low_below": 0.3,
+    "high_at_or_above": 0.7,
+    "classification": 0.5,
+    "policy": "Fixed display thresholds, not optimized on test"
+  },
+  "export_max_absolute_error": 3.061439990403869e-14,
+  "artifact_sha256": "028656e1214803fbba0acc3c4ee29526c34bfb927fc9d41f7a685eeb47a5b45d",
+  "artifact_bytes": 2100729
+}

@@ -19,6 +19,7 @@ MODEL_PATH = Path(__file__).resolve().parents[1] / "data" / "models" / "website-
 LABELS = {
     "url_length": "Address length",
     "host_length": "Domain length",
+    "host_dots": "Dots in domain",
     "path_length": "Page path length",
     "query_length": "Query length",
     "https_scheme": "HTTPS in the observed address",

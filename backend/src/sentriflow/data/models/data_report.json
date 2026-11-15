@@ -2,7 +2,7 @@
   "seed": 42,
   "python": "3.13.9",
   "sklearn": "1.9.1",
-  "created_at": "2026-11-15T14:28:19.394747+00:00",
+  "created_at": "2026-11-15T14:33:36.276047+00:00",
   "dataset": {
     "source": "https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset",
     "authors": [
@@ -78,18 +78,15 @@
     "positive_class": "1=phishing (inverted UCI label)",
     "source_rows": 235795,
     "invalid_rows": 0,
-    "duplicate_rows": 643,
-    "conflicting_urls_removed": 0,
-    "retained_rows": 235152,
-    "registered_domain_groups": 197709,
-    "training_inputs": "Only recomputed numeric URL structure; no provided derived columns"
+    "duplicate_rows": 14414,
+    "conflicting_urls_removed": 12,
+    "retained_rows": 221369,
+    "registered_domain_groups": 197699,
+    "training_inputs": "Only recomputed numeric domain structure; no path/query or provided derived columns"
   },
-  "feature_version": 1,
+  "feature_version": 2,
   "features": [
-    "url_length",
     "host_length",
-    "path_length",
-    "query_length",
     "https_scheme",
     "host_is_ip",
     "subdomain_count",
@@ -100,42 +97,34 @@
     "host_hyphens",
     "host_entropy",
     "punycode",
-    "path_depth",
-    "url_dots",
-    "url_hyphens",
-    "url_at",
-    "url_percent",
-    "url_equals",
-    "url_ampersands",
-    "url_digits",
-    "query_parameters",
+    "host_dots",
     "nonstandard_port"
   ],
   "split_method": "Disjoint registered domains including private PSL; 60/10/15/15 groups",
   "splits": {
     "train": {
-      "rows": 142836,
-      "groups": 118624,
-      "phishing": 61835,
-      "legitimate": 81001
+      "rows": 135209,
+      "groups": 118619,
+      "phishing": 54184,
+      "legitimate": 81025
     },
     "selection": {
-      "rows": 23070,
-      "groups": 19771,
-      "phishing": 9697,
-      "legitimate": 13373
+      "rows": 21561,
+      "groups": 19770,
+      "phishing": 8078,
+      "legitimate": 13483
     },
     "calibration": {
-      "rows": 34022,
-      "groups": 29657,
-      "phishing": 13732,
-      "legitimate": 20290
+      "rows": 32310,
+      "groups": 29655,
+      "phishing": 12127,
+      "legitimate": 20183
     },
     "test": {
-      "rows": 35224,
-      "groups": 29657,
-      "phishing": 15038,
-      "legitimate": 20186
+      "rows": 32289,
+      "groups": 29655,
+      "phishing": 12142,
+      "legitimate": 20147
     }
   },
   "group_overlap": 0

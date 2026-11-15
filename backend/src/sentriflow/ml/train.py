@@ -14,7 +14,6 @@ import zipfile
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 
 import numpy as np
 import sklearn
@@ -37,6 +36,7 @@ from sklearn.preprocessing import StandardScaler
 from sentriflow.ml.features import (
     FEATURE_NAMES,
     FEATURE_VERSION,
+    canonical_origin,
     extract_features,
     host_from_url,
     registered_domain,
@@ -75,11 +75,7 @@ def prepare(dataset: Path):
                 if host is None or features is None:
                     invalid += 1
                     continue
-                parts = urlsplit(url)
-                authority = f"[{host}]" if ":" in host else host
-                if parts.port:
-                    authority += f":{parts.port}"
-                key = urlunsplit((parts.scheme.lower(), authority, parts.path, parts.query, ""))
+                key = canonical_origin(url)
                 if key in unique:
                     duplicates += 1
                     if unique[key][1] != label:
@@ -108,7 +104,9 @@ def prepare(dataset: Path):
         "conflicting_urls_removed": len(conflicts),
         "retained_rows": len(y),
         "registered_domain_groups": len(set(groups)),
-        "training_inputs": "Only recomputed numeric URL structure; no provided derived columns",
+        "training_inputs": (
+            "Only recomputed numeric domain structure; no path/query or provided derived columns"
+        ),
     }
     return x, y, groups, metadata
 
@@ -253,6 +251,21 @@ def main():
     calibrator.fit(estimator.predict_proba(x[calibration])[:, 1], y[calibration])
     raw = estimator.predict_proba(x[test])[:, 1]
     calibrated = calibrator.predict(raw)
+    report["global_feature_importance"] = (
+        dict(zip(FEATURE_NAMES, estimator.feature_importances_.tolist(), strict=True))
+        if selected == "random_forest"
+        else None
+    )
+    report["feature_summary_by_class"] = {
+        str(label): {
+            name: {
+                "mean": float(x[y == label, i].mean()),
+                "median": float(np.median(x[y == label, i])),
+            }
+            for i, name in enumerate(FEATURE_NAMES)
+        }
+        for label in (0, 1)
+    }
     report.update(
         selected=selected,
         selection_comparison=comparisons,
@@ -270,11 +283,11 @@ def main():
     )
     artifact = {
         "schema": 1,
-        "model_id": f"phiusiil-url-v1-{metadata['archive_sha256'][:12]}",
+        "model_id": f"phiusiil-domain-v2-{metadata['archive_sha256'][:12]}",
         "feature_version": FEATURE_VERSION,
         "features": list(FEATURE_NAMES),
         "positive_class": "phishing",
-        "scope": "URL-structure phishing classification",
+        "scope": "Domain-structure phishing classification",
         "estimator": export_estimator(estimator),
         "calibration": {
             "method": "isotonic",

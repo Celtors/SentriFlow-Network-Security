@@ -11,13 +11,10 @@ from urllib.parse import urlsplit
 
 import tldextract
 
-FEATURE_VERSION = 1
+FEATURE_VERSION = 2
 MAX_URL = 8192
 FEATURE_NAMES = (
-    "url_length",
     "host_length",
-    "path_length",
-    "query_length",
     "https_scheme",
     "host_is_ip",
     "subdomain_count",
@@ -28,15 +25,7 @@ FEATURE_NAMES = (
     "host_hyphens",
     "host_entropy",
     "punycode",
-    "path_depth",
-    "url_dots",
-    "url_hyphens",
-    "url_at",
-    "url_percent",
-    "url_equals",
-    "url_ampersands",
-    "url_digits",
-    "query_parameters",
+    "host_dots",
     "nonstandard_port",
 )
 # Offline snapshot only; never downloads suffix lists or contacts analyzed sites.
@@ -73,11 +62,27 @@ def is_public_host(host: str) -> bool:
         return bool(_suffix(host).suffix) and not host.endswith((".local", ".test", ".invalid"))
 
 
-def extract_features(url: str) -> list[float] | None:
+def canonical_origin(url: str) -> str | None:
     host = host_from_url(url)
     if host is None:
         return None
+    # Conventional www and root slash formatting differ systematically in the
+    # source corpus. Ignore these, as well as ALL path/query/userinfo/fragment data.
+    host = host[4:] if host.startswith("www.") else host
     parts = urlsplit(url)
+    authority = f"[{host}]" if ":" in host else host
+    if parts.port and parts.port != (443 if parts.scheme.lower() == "https" else 80):
+        authority += f":{parts.port}"
+    return f"{parts.scheme.lower()}://{authority}"
+
+
+def extract_features(url: str) -> list[float] | None:
+    origin = canonical_origin(url)
+    if origin is None:
+        return None
+    parts = urlsplit(origin)
+    host = parts.hostname
+    assert host is not None
     try:
         ipaddress.ip_address(host)
         is_ip = 1
@@ -87,17 +92,9 @@ def extract_features(url: str) -> list[float] | None:
     suffix = _suffix(host)
     digits = sum(c.isdigit() for c in host)
     entropy = -sum((n / len(host)) * math.log2(n / len(host)) for n in Counter(host).values())
-    # Credentials are discarded before structural URL counts. Query/path strings
-    # are transient; values are not decoded, tokenized or handed to the estimator.
-    structural = f"{parts.scheme.lower()}://{host}{parts.path}"
-    if parts.query:
-        structural += "?" + parts.query
     port = parts.port
     values = [
-        len(structural),
         len(host),
-        len(parts.path),
-        len(parts.query),
         int(parts.scheme.lower() == "https"),
         is_ip,
         len(suffix.subdomain.split(".")) if suffix.subdomain else 0,
@@ -108,15 +105,7 @@ def extract_features(url: str) -> list[float] | None:
         host.count("-"),
         entropy,
         int("xn--" in host),
-        sum(bool(p) for p in parts.path.split("/")),
-        structural.count("."),
-        structural.count("-"),
-        structural.count("@"),
-        structural.count("%"),
-        structural.count("="),
-        structural.count("&"),
-        sum(c.isdigit() for c in structural),
-        len(parts.query.split("&")) if parts.query else 0,
+        host.count("."),
         int(port is not None and port != (443 if parts.scheme.lower() == "https" else 80)),
     ]
     return [float(value) for value in values]

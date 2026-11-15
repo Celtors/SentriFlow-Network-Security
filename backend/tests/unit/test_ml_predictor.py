@@ -59,3 +59,17 @@ def test_cyclic_tree_is_rejected_even_without_checksum(tmp_path):
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="child"):
         Predictor(path, verify=False)
+
+
+def test_shipped_trained_model_runs_without_training():
+    model = Predictor()
+    assert model.status()["available"]
+    assert model.status()["metrics"]["confusion_matrix"]["tp"] > 0
+    for url in ("https://www.youtube.com/", "http://verify-login-2024.security-confirmation.com/"):
+        result = model.analyze(url)
+        assert result["state"] == "ready"
+        assert 0 <= result["maliciousness_percentage"] <= 100
+        assert result["model_id"].startswith("phiusiil-domain-v2-")
+    assert model.analyze("https://www.youtube.com/") == model.analyze(
+        "https://youtube.com/watch?token=secret-never-an-input"
+    )

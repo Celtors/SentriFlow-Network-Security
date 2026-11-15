@@ -1,157 +1,148 @@
-# CURRENT STATE — reform
+# CURRENT STATE ? reform
 
-Updated: 15 November 2026 (Asia/Jakarta). Milestone: real dataset preparation and ML foundation.
+Updated: 15 November 2026 (Asia/Jakarta). Milestone: trained and evaluated ML model.
 
-## Latest verified progress (takes precedence over historical assessment below)
+## Objective and repository
 
-- Initial checkpoint **12bd8f5** was successfully pushed; remote `refs/heads/reform` verified.
-- Current baseline: **160 backend passed, 3 skipped** (environment-specific checks), **11 frontend
-  passed**, frontend production build passed in this worktree. Dependencies installed in its own
-  `.venv` and `frontend/node_modules`. npm reports 9 moderate dependency advisories; assessment pending.
-- Official UCI archive downloaded to ignored `.runtime/datasets/phiusiil-verified.zip` (15,376,007 B),
-  SHA256 `0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a`.
-- Actual schema: 56 columns including URL/label. Original 134,850 legitimate / 100,945 phishing;
-  **positive class inverted to 1=phishing**. 0 invalid rows, 643 duplicate normalized URLs,
-  0 conflicting URLs, 235,152 retained rows in 197,709 registered-domain groups.
-- Train/selection/calibration/test are domain-disjoint, including private PSL hosting domains:
-  142,836 / 23,070 / 34,022 / 35,224 rows. Overlap asserted zero. Selection is separate from
-  calibration and test. `data_report.json` records counts, columns, definitions and provenance.
-- Shared `ml/features.py`: 24 numeric structural features, same code for train/inference. Lengths
-  (URL/host/path/query), HTTPS scheme, IP literal, subdomains, longest label, TLD length, domain
-  digits/ratio/hyphens/entropy, punycode, path depth, URL dots/hyphens/@/%/=/&/digits, query parameter
-  count, nonstandard port. Credentials/fragments discarded; raw values never estimator inputs.
-- `ml/train.py` fits Random Forest and scaled Logistic Regression, selects on selection AUC,
-  fits isotonic calibration on separate domains, evaluates untouched test including FP/FN and
-  calibration bins, exports data-only JSON. Training is running; **no measured model results yet**.
-- `ml/predictor.py` implements checksum/schema/class/tree checks, float32-compatible tree traversal,
-  isotonic interpolation and local sensitivity explanations. No pickle, network or sklearn at runtime.
-  5 new feature/predictor tests passed; relevant Ruff checks passed. Training verifies export parity.
-- Runtime dependency added: `tldextract>=5.4,<6`, configured with bundled offline suffix snapshot.
-- Live monitoring service is being developed but not wired into Runtime/proxy/UI yet. It is outside
-  the data-foundation commit. No claim of an integrated prediction at this checkpoint.
-- Next: finish real training, inspect held-out metrics and artifact parity, publish model card and
-  artifact; integrate bounded privacy observations, live API/events and compact/expanded interface.
+Implement genuine phishing-risk inference inside the existing SentriFlow app,
+preserve traffic/privacy controls, provide a compact floating-style view and
+expanded details, keep sensitive values out of ML, and push recoverable milestones.
+No browser extension. Latest user implementation prompt is the primary spec.
 
-Reproduction from this worktree:
+- Remote: https://github.com/Celtors/SentriFlow-Network-Security.git
+- Worktree: `D:/ITBx_Sem5/SentriFlow/SentriFlow-Reform`, branch **reform**.
+- Base: fetched current `origin/merge` e670eab, not the stale local merge checkout.
+- Original `SentriFlow-Network-Security` checkout remains on merge; unrelated dirty
+  proposal/setup/lockfile changes are untouched. No reset/discard/force push.
+- Confirmed pushed: **12bd8f5** assessment; **93bbcf9** data/feature foundation.
+  Remote reform head was verified after each push. Next commit is model milestone.
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -e "backend[dev,browser,ml]"
-.\.venv\Scripts\python.exe -m sentriflow.ml.train --dataset .runtime/datasets/phiusiil-verified.zip --prepare-only
-.\.venv\Scripts\python.exe -m sentriflow.ml.train --dataset .runtime/datasets/phiusiil-verified.zip
-.\.venv\Scripts\python.exe -m pytest backend/tests/unit/test_ml_features.py backend/tests/unit/test_ml_predictor.py -q
-```
+## Existing architecture retained
 
-## Initial assessment (historical context; superseded by progress above)
+`backend/src/sentriflow/application.py` Runtime composes async SQLite repositories,
+EventBus, HaltManager, inspection, rules, tracker/GeoIP intelligence and process
+resolver. mitmproxy/API run on one asyncio loop. Proxy 8080, API/UI 8787, Vite 3000.
+Authentication: X-SentriFlow-Token or existing Bearer header; WS subprotocols
+sentriflow + token. Host/Origin checks remain mandatory for new routes.
+React/TypeScript/Zustand/Recharts/Leaflet existing frontend, no duplicate app.
 
-## Objective
+Retained HTTP/HTTPS interception, redacted PII/tracker checks, independent held
+requests, remembered rules, alerts, persistent redacted history, per-process
+streaming byte rates, offline vector map, Windows routing/CA consent and recovery.
+Core/inspection must not import API/proxy/OS adapters (CONTRIBUTING).
 
-Implement a real trained website/phishing risk model in the existing SentriFlow application,
-retain traffic/privacy controls, and provide a compact floating-style interface with expanded
-details. Never feed sensitive values to the model, invent observations/predictions, or build a
-browser extension. Commit and push coherent checkpoints to `origin/reform`.
+## Model, data, artifacts ? COMPLETE and verified
 
-## Repository and synchronization
+- Official UCI PhiUSIIL dataset 967, Arvind Prasad and Shalini Chandra (2024).
+  Source: https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset
+  License CC BY 4.0; attribution/adaptations in **docs/ml-model.md**.
+- Archive ignored at `.runtime/datasets/phiusiil-verified.zip`, 15,376,007 bytes,
+  SHA256 0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a.
+  Public URL strings are never visited; no raw dataset committed.
+- 235,795 rows, 56 actual columns. Source label 1=legitimate/0=phishing;
+  **explicitly inverted to positive 1=phishing**. Discard other source features.
+- Schema **2**: canonical origin removes www prefix, path/query/userinfo/fragment.
+  Initial 24-feature path model was rejected by ordinary-address smoke probes
+  due to collection-format bias. It is NOT the shipped artifact.
+- Final 13 numeric features: hostname length, HTTPS scheme, IP literal, subdomain
+  count, longest label, suffix length, domain digits/ratio/hyphens/entropy,
+  punycode, host dots, nonstandard port. Definitions in model card and extractor.
+- Shared **ml/features.py** for training/live; tldextract bundled PSL only, no
+  runtime suffix downloads. No passwords/tokens/cookies/forms/browser behavior
+  are inputs. HTTPS is a scheme observation, not a trust assertion.
+- 14,414 origin duplicates, 12 conflicting origins removed, 0 invalid rows;
+  retained 221,369 origins / 197,699 registered-domain groups including private PSL.
+- Domain-disjoint fit/selection/calibration/test: 135,209 /21,561 /32,310 /32,289
+  rows; zero group overlap asserted. Seed42. Final test 20,147 legit/12,142 phishing.
+- Random Forest 96 trees/depth12/min leaf8 beats scaled Logistic Regression on
+  selection AUC .969612 vs .964816. Isotonic calibrated only on separate domains.
+- Test precision .983424, recall .908829, F1 .944656, AUC .970029, accuracy .959955.
+  TN19961/FP186/FN1107/TP11035; FPR .009232, FNR .091171. Brier .036154 -> .035100;
+  ECE10 .002652. Internal-corpus evaluation, not production/temporal guarantee.
+- **backend/src/sentriflow/data/models/website-risk.json**, ~2.1MB, safe data-only
+  learned tree export, calibration knots and train medians. SHA256 sibling file.
+  **data_report.json**, **training_report.json** contain provenance/counts/metrics/
+  reliability bins/class summaries/global importance and environment versions.
+- **ml/predictor.py** validates checksum/schema/class/tree and matches sklearn
+  float32 traversal. Whole test-set export parity max absolute error 3.062e-14.
+  Runtime needs no sklearn/numpy/network/training. Missing artifact -> unavailable.
+- Percentage=100*isotonic-calibrated positive-class inference (one decimal).
+  Display low<30/medium30?<70/high>=70; fixed policy, not tuned on test.
+  Explanations rerun model replacing each feature with training median; local
+  sensitivity only, not causal/additive or invented browser-behavior reasons.
+- Sanity probes: YouTube home and watch path identical 4.9%, Google/GitHub 4.4%;
+  these are unlabelled smoke examples, not additional accuracy measurements.
 
-- Remote: `https://github.com/Celtors/SentriFlow-Network-Security.git`.
-- Worktree: `D:\ITBx_Sem5\SentriFlow\SentriFlow-Reform`; branch `reform`.
-- Base: latest fetched `origin/merge`, `e670eab` (15 November synchronization).
-- `origin/reform` did not exist at initial fetch; this branch was created from updated integration.
-- Original checkout `SentriFlow-Network-Security` remains on `merge` with its uncommitted proposal,
-  setup, and lockfile edits intact. Those unrelated changes are not included here.
-- No reset, discarded changes, or force push. First checkpoint pushed as 12bd8f5.
+## Integration currently IN PROGRESS, not claimed complete
 
-## Existing architecture and functionality
+Working tree changes for next milestone (outside this model commit):
+- `website/service.py`: bounded live summaries, actual transient request inference,
+  navigation metadata vs background destination distinction, referrer/Origin host
+  association, explicit missing evidence, redacted header presence/HTML forms.
+- `website/observations.py`: bounded identity/gzip/deflate streaming HTML tee,
+  static forms/types/external action host only, original bytes returned unchanged.
+- Runtime/proxy hooks, authenticated /api/websites, /api/websites/{id},
+  /api/model/status, snapshot fields and website.updated events being wired.
+- React WebsitePanel and black/papaya compact-first App, expanded evidence,
+  preserved old pages and popup button being implemented. UI lint/build pass.
+- Next required work: meaningful website/live/proxy/privacy tests, HTML disabled
+  inspection/caps/error coverage, integration fixes, UI state tests, real browser
+  verification including actual live inference and legacy traffic/Halt/regressions.
 
-- Python package `backend/src/sentriflow`; `application.Runtime` composes async SQLite repositories,
-  inspection, Halt/rules, process resolver, local intelligence and event bus on one API/proxy loop.
-- mitmproxy at 8080; FastAPI/dashboard at 8787; Vite dev at 3000. Existing REST token header:
-  `X-SentriFlow-Token`; WS subprotocols `sentriflow` and session token. Preserve these contracts.
-- Existing working functionality: HTTP/HTTPS interception, redacted PII/tracker checks, independent
-  held requests, persistent decisions, per-process chunk-based traffic rates, alerts, score,
-  Windows proxy/CA consent/recovery, and offline vector country map.
-- React/TypeScript/Zustand/Recharts/Leaflet frontend; authenticated snapshots and event updates,
-  reconnect, multiple-client sync, actual traffic/Halt/rules/settings pages.
-- Existing integration record reports 163 backend / 11 frontend tests; baseline has not yet been
-  rerun in this isolated worktree. These are historical results, not current verification.
+## Observability and limitations
 
-## What monitoring actually observes
+Cannot identify focused tab, JS permission attempts/success, screen resolution,
+canvas/WebGL execution or browser storage reads from proxy alone. Mark unavailable.
+Sec-Fetch document/navigation identifies a most recently observed page only.
+Referrer/Origin process association is approximate across same-host tabs.
+Header presence is attempted before forwarding; upstream response permits an
+observed transmission, not proof of receiver read/storage. Cookie values discarded.
+Static form structure is not evidence of filled/submitted values. Compressed/
+uninspected/unsupported HTML must remain unavailable. No hidden script injection.
 
-- Proxy supplies destination, request URL transiently, headers/body transiently for existing local
-  inspection, process identity, response status/IP/country, timing and measured payload counters.
-- No browser extension or browser-API telemetry currently exists. Camera/microphone/location
-  permission requests, successful JS API calls, fingerprinting API use, localStorage reads, and
-  the currently focused browser tab are not observable from proxy metadata alone.
-- Plan: identify page navigations when request metadata supports them, keep background/subresource
-  traffic distinct, and report an observed page rather than falsely claiming the focused tab.
-- Privacy expansion will use bounded redacted metadata and evidence statuses. Do not store raw
-  URLs/query/form values, tokens, cookie values, passwords or card values in ML inputs/events.
+Model cannot detect all malware, phishing on compromised legitimate hosts or
+page-path content. Source corpus has HTTPS/source bias (~46% forest importance).
+No production labels/external or temporal validation, prior correction or guarantee.
+Summaries planned memory-only bounded50, restart clears them; existing redacted
+flow/rule persistence retained. No automatic blocking solely from model estimate.
 
-## ML decision, data and status
+## Validation so far
 
-- Actual model: not implemented at this checkpoint; no synthetic or hardcoded risk output.
-- Candidate models: Random Forest first; compare Logistic Regression using identical live-derived
-  URL/domain numerical features. Use disjoint registered-domain groups for fitting, selection,
-  calibration and final evaluation; remove conflicting/duplicate URLs.
-- Dataset selected for inspection: UCI PhiUSIIL, ID 967, authors Arvind Prasad and Shalini Chandra.
-  Official source: https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset
-  License: CC BY 4.0. UCI documents raw URL strings, 235,795 rows and original label 1=legitimate,
-  0=phishing. Positive-class mapping must be explicitly inverted to 1=phishing.
-- Dataset has not yet been downloaded or inspected locally. Training must recompute features
-  from raw URLs instead of using precomputed label-derived reputation/similarity columns.
-- Proposed inputs: bounded URL/domain length and structure, digit/hyphen/subdomain statistics,
-  observed scheme, IP-literal/punycode indicators. No reputation, domain-age or browser behavior
-  feature unless the same measurement exists in both training and runtime.
-- Feature extraction, trained artifact, inference integration, evaluation metrics and calibration:
-  pending. Export a safe versioned artifact; validate trained/exported inference parity and the
-  positive class. Report phishing-scope limitations and missing evidence clearly.
-- Training source guidance reviewed: official UCI dataset metadata and scikit-learn calibration
-  documentation. Exact download/hash, inspected columns, split counts/features and metrics will
-  be recorded at the data/training milestone.
-
-## UI state
-
-Existing full dashboard is functional. Compact floating-style risk view, explicit analysis/loading/
-missing-evidence states and expanded website/transparency detail are pending. Preserve black and
-papaya-orange branding and useful existing controls; do not create a second frontend.
-
-## Important files and dependencies
-
-`application.py`, `proxy/addon.py`, `core/models.py`, `inspection/pipeline.py`, `api/server.py`,
-`api/ws.py`, `storage/repositories/`, `frontend/src/App.tsx`, `api/types.ts`, `api/ws.ts`,
-`hooks/useLiveTraffic.ts`, `store/trafficStore.ts`, and existing UI pages are the integration points.
-`scripts/build.py`, `scripts/check-browser.py` and existing unit/integration tests are reusable.
-`backend[ml]` currently declares scikit-learn but is not connected to execution. No dependency
-changes have been made yet.
+- Baseline before implementation: 160 backend passed/3 skipped, 11 frontend passed,
+  frontend build passed. Latest integrated regression: 165 passed/3 skipped before
+  feature-schema correction (not final validation).
+- Current ML-only tests: **7 passed**, actual shipped artifact included. Ruff
+  ML checks need rerun after formatting fix before this milestone commit.
+- UI TypeScript/build/ESLint pass on in-progress compact/expanded implementation.
+- npm ci reports9 moderate advisories; inspect actual packages and safe fixes before
+  final. No force upgrades. Existing dependency deprecation warnings documented.
+- Genuine full application/browser/expanded-detail verification remains pending.
 
 ## Commands
 
-From this worktree (a separate environment will be installed here):
+From THIS worktree, separate venv (Python3.13 here, project >=3.12):
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e "backend[dev,browser,ml]"
 npm --prefix frontend ci
+.\.venv\Scripts\python.exe -m sentriflow.ml.train --dataset .runtime/datasets/phiusiil-verified.zip
 .\.venv\Scripts\python.exe -I scripts/build.py
 .\.venv\Scripts\python.exe -I -m sentriflow run
 .\scripts\test.ps1
 ```
 
-Training/reproduction commands and new website API routes are pending implementation. Do not
-use the original checkout's editable environment for this worktree.
+See **docs/ml-model.md** for official download command/hash, schema definitions,
+licensing, reproducibility and calibration limits. Clone users do NOT need to
+train: artifact is included by setuptools package data `data/**/*`.
+Added runtime dependency tldextract>=5.4,<6; sklearn remains training-only extra.
+Do not use original checkout editable environment, private browsing data or secrets.
 
-## Completed / remaining / next checkpoint
+## Precise next checkpoint
 
-Completed: prompt read, dirty-worktree assessment, remote fetch, safe isolated `reform` worktree,
-updated integration base, actual monitoring/API/UI assessment, initial dataset/license research.
-
-Next: commit/push this assessment; install isolated dependencies and run baseline checks; inspect
-official dataset and implement reusable feature extraction/data preparation; commit/push that
-checkpoint. Then train/evaluate/calibrate/export, integrate live inference and observable privacy
-evidence, redesign the existing UI, perform actual browser/regression verification, and push final.
-
-Known limits: no model or new UI yet; dataset license/metadata reviewed but no local data-quality
-verification; proxy cannot prove JS API access/focused-tab state. Model percentages must remain
-absent until a valid artifact and actual inference exist.
-
-Git delivery: assessment commit and `origin/reform` creation are the immediate next action.
-Subsequent checkpoints will list successful commit IDs, test outcomes, failures and exact blockers.
+Push trained artifact/model card/schema2 fixes with this state. Then finish live
+monitoring tests and integration; commit/push. Finish compact UI tests and real
+browser smoke; commit/push. Run full gate and privacy/security/startup/export/
+package checks, fix issues, update README/integration/current state and push final.
+Record exact successful commits, test outcomes and any real blocker. No blocker
+currently prevents local implementation or pushing to origin/reform.

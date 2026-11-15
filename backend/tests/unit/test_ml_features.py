@@ -16,4 +16,11 @@ def test_invalid_features_and_domain_groups():
     assert registered_domain("a.b.example.co.uk") == "example.co.uk"
     assert registered_domain("one.github.io") != registered_domain("two.github.io")
     assert host_from_url("https://EXAMPLE.COM./") == "example.com"
-    assert extract_features("http://8.8.8.8/")[5] == 1
+    assert extract_features("http://8.8.8.8/")[FEATURE_NAMES.index("host_is_ip")] == 1
+
+
+def test_source_format_and_sensitive_path_are_ignored():
+    assert extract_features("https://www.youtube.com") == extract_features("https://youtube.com/")
+    assert extract_features("https://youtube.com/") == extract_features(
+        "https://youtube.com/watch?token=private-password&card=4111111111111111"
+    )
